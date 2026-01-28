@@ -1,4 +1,5 @@
-﻿import sqlite3
+﻿import os
+import sqlite3
 from pathlib import Path
 
 DB_PATH = Path("data/app.db")
@@ -23,6 +24,17 @@ def init_db() -> None:
                 status TEXT,
                 assignee TEXT,
                 paid INTEGER
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                role TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL
             )
             """
         )

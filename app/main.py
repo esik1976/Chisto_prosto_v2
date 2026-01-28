@@ -3,10 +3,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+from sqlite3 import IntegrityError
 
 from .db import init_db
 from .auth import (
     ROLES,
+    create_user,
+    authenticate,
     get_user_name,
     get_user_role,
     set_user_session,
@@ -51,10 +54,41 @@ def login_page(request: Request):
 
 
 @app.post("/login")
-def login(request: Request, name: str = Form(...), role: str = Form(...)):
+def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    user = authenticate(username, password)
+    if not user:
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": "Неверный логин или пароль"},
+            status_code=400,
+        )
+    set_user_session(request, user["id"], user["username"], user["role"])
+    return RedirectResponse(url="/orders", status_code=303)
+
+
+@app.get("/register", response_class=HTMLResponse)
+def register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+@app.post("/register")
+def register(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+):
     if role not in ROLES:
         raise HTTPException(status_code=400, detail="Invalid role")
-    set_user_session(request, name, role)
+    try:
+        user_id = create_user(username, role, password)
+    except IntegrityError:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "Пользователь уже существует"},
+            status_code=400,
+        )
+    set_user_session(request, user_id, username, role)
     return RedirectResponse(url="/orders", status_code=303)
 
 
