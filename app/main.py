@@ -3,7 +3,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
-from .storage import list_orders, create_order, take_order, complete_order
+from .storage import (
+    list_orders,
+    create_order,
+    take_order,
+    complete_order,
+    set_status,
+    mark_paid,
+)
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -52,6 +59,24 @@ def orders_take(order_id: int, assignee: str = Form(...)):
 def orders_complete(order_id: int):
     try:
         complete_order(order_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return RedirectResponse(url="/orders", status_code=303)
+
+
+@app.post("/orders/{order_id}/status")
+def orders_status(order_id: int, status: str = Form(...)):
+    try:
+        set_status(order_id, status)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return RedirectResponse(url="/orders", status_code=303)
+
+
+@app.post("/orders/{order_id}/pay")
+def orders_pay(order_id: int):
+    try:
+        mark_paid(order_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
     return RedirectResponse(url="/orders", status_code=303)

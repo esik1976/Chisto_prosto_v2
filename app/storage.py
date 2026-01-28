@@ -10,6 +10,7 @@ class Order:
     price: int
     status: str = "new"
     assignee: Optional[str] = None
+    paid: bool = False
 
 
 _orders: List[Order] = []
@@ -44,3 +45,13 @@ def take_order(order_id: int, assignee: str) -> None:
 def complete_order(order_id: int) -> None:
     order = get_order(order_id)
     order.status = "done"
+
+
+def set_status(order_id: int, status: str) -> None:
+    order = get_order(order_id)
+    order.status = status
+
+
+def mark_paid(order_id: int) -> None:
+    order = get_order(order_id)
+    order.paid = True

@@ -21,6 +21,7 @@
           <th>Цена</th>
           <th>Статус</th>
           <th>Исполнитель</th>
+          <th>Оплата</th>
           <th>Действия</th>
         </tr>
       </thead>
@@ -33,6 +34,7 @@
           <td>{{ order.price }}</td>
           <td>{{ order.status }}</td>
           <td>{{ order.assignee or "—" }}</td>
+          <td>{{ "оплачено" if order.paid else "не оплачено" }}</td>
           <td>
             {% if order.status == "new" %}
             <form method="post" action="/orders/{{ order.id }}/take" class="inline-form">
@@ -46,6 +48,20 @@
             {% else %}
             —
             {% endif %}
+
+            <form method="post" action="/orders/{{ order.id }}/status" class="inline-form admin-form">
+              <select name="status">
+                <option value="new">new</option>
+                <option value="in_progress">in_progress</option>
+                <option value="done">done</option>
+                <option value="cancelled">cancelled</option>
+              </select>
+              <button type="submit">Статус</button>
+            </form>
+
+            <form method="post" action="/orders/{{ order.id }}/pay" class="inline-form admin-form">
+              <button type="submit">Оплачено</button>
+            </form>
           </td>
         </tr>
         {% endfor %}
