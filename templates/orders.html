@@ -5,86 +5,98 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Заказы</title>
   <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
   <main class="container">
-    <div class="topbar">
-      <div>
-        <strong>Пользователь:</strong> {{ user_name }} ({{ user_role }})
+    <header class="topbar">
+      <div class="brand compact">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Заказы</h1>
+          <p class="subtitle">{{ user_name }} · {{ user_role }}</p>
+        </div>
       </div>
       <form method="post" action="/logout">
-        <button type="submit">Выйти</button>
+        <button class="btn ghost" type="submit">Выйти</button>
       </form>
-    </div>
+    </header>
 
-    <h1>Заказы</h1>
     {% if user_role in ["customer", "admin"] %}
-    <p><a href="/orders/new">Создать заказ</a></p>
+    <div class="card actions">
+      <a class="btn" href="/orders/new">Создать заказ</a>
+    </div>
     {% endif %}
 
     {% if orders %}
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Адрес</th>
-          <th>Описание</th>
-          <th>Цена</th>
-          <th>Статус</th>
-          <th>Исполнитель</th>
-          <th>Оплата</th>
-          <th>Действия</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for order in orders %}
-        <tr>
-          <td>{{ order.id }}</td>
-          <td>{{ order.address }}</td>
-          <td>{{ order.description }}</td>
-          <td>{{ order.price }}</td>
-          <td>{{ order.status }}</td>
-          <td>{{ order.assignee or "—" }}</td>
-          <td>{{ "оплачено" if order.paid else "не оплачено" }}</td>
-          <td>
-            {% if user_role in ["worker", "admin"] and order.status == "new" %}
-            <form method="post" action="/orders/{{ order.id }}/take" class="inline-form">
-              <input type="text" name="assignee" placeholder="Имя исполнителя" required />
-              <button type="submit">Взять</button>
-            </form>
-            {% elif user_role in ["worker", "admin"] and order.status == "in_progress" %}
-            <form method="post" action="/orders/{{ order.id }}/complete" class="inline-form">
-              <button type="submit">Завершить</button>
-            </form>
-            {% else %}
-            —
-            {% endif %}
+    <div class="card table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Адрес</th>
+            <th>Описание</th>
+            <th>Цена</th>
+            <th>Статус</th>
+            <th>Исполнитель</th>
+            <th>Оплата</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <td>{{ order.id }}</td>
+            <td>{{ order.address }}</td>
+            <td>{{ order.description }}</td>
+            <td>{{ order.price }}</td>
+            <td><span class="badge">{{ order.status }}</span></td>
+            <td>{{ order.assignee or "—" }}</td>
+            <td>{{ "оплачено" if order.paid else "не оплачено" }}</td>
+            <td>
+              {% if user_role in ["worker", "admin"] and order.status == "new" %}
+              <form method="post" action="/orders/{{ order.id }}/take" class="inline-form">
+                <input type="text" name="assignee" placeholder="Имя исполнителя" required />
+                <button class="btn" type="submit">Взять</button>
+              </form>
+              {% elif user_role in ["worker", "admin"] and order.status == "in_progress" %}
+              <form method="post" action="/orders/{{ order.id }}/complete" class="inline-form">
+                <button class="btn" type="submit">Завершить</button>
+              </form>
+              {% else %}
+              —
+              {% endif %}
 
-            {% if user_role == "admin" %}
-            <form method="post" action="/orders/{{ order.id }}/status" class="inline-form admin-form">
-              <select name="status">
-                <option value="new">new</option>
-                <option value="in_progress">in_progress</option>
-                <option value="done">done</option>
-                <option value="cancelled">cancelled</option>
-              </select>
-              <button type="submit">Статус</button>
-            </form>
+              {% if user_role == "admin" %}
+              <form method="post" action="/orders/{{ order.id }}/status" class="inline-form admin-form">
+                <select name="status">
+                  <option value="new">new</option>
+                  <option value="in_progress">in_progress</option>
+                  <option value="done">done</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+                <button class="btn ghost" type="submit">Статус</button>
+              </form>
 
-            <form method="post" action="/orders/{{ order.id }}/pay" class="inline-form admin-form">
-              <button type="submit">Оплачено</button>
-            </form>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+              <form method="post" action="/orders/{{ order.id }}/pay" class="inline-form admin-form">
+                <button class="btn ghost" type="submit">Оплачено</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
-    <p>Заказов пока нет.</p>
+    <div class="card">
+      <p>Заказов пока нет.</p>
+    </div>
     {% endif %}
 
-    <p><a href="/">На главную</a></p>
+    <p class="hint"><a href="/">На главную</a></p>
   </main>
 </body>
 </html>

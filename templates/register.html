@@ -5,33 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Регистрация</title>
   <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
   <main class="container">
-    <h1>Регистрация</h1>
-    {% if error %}
-    <p class="error">{{ error }}</p>
-    {% endif %}
-    <form method="post" action="/register">
-      <label>
-        Логин
-        <input type="text" name="username" required />
-      </label>
-      <label>
-        Пароль
-        <input type="password" name="password" required />
-      </label>
-      <label>
-        Роль
-        <select name="role" required>
-          <option value="customer">Заказчик</option>
-          <option value="worker">Исполнитель</option>
-          <option value="admin">Администратор</option>
-        </select>
-      </label>
-      <button type="submit">Создать аккаунт</button>
-    </form>
-    <p><a href="/login">Уже есть аккаунт? Войти</a></p>
+    <header class="brand compact">
+      <div class="logo">CP</div>
+      <div>
+        <h1>Регистрация</h1>
+        <p class="subtitle">Создайте аккаунт за минуту</p>
+      </div>
+    </header>
+
+    <section class="card">
+      {% if error %}
+      <p class="error">{{ error }}</p>
+      {% endif %}
+      <form method="post" action="/register">
+        <label>
+          Логин
+          <input type="text" name="username" required />
+        </label>
+        <label>
+          Пароль
+          <input type="password" name="password" required />
+        </label>
+        <label>
+          Роль
+          <select name="role" required>
+            <option value="customer">Заказчик</option>
+            <option value="worker">Исполнитель</option>
+            <option value="admin">Администратор</option>
+          </select>
+        </label>
+        <button class="btn" type="submit">Создать аккаунт</button>
+      </form>
+      <p class="hint"><a href="/login">Уже есть аккаунт? Войти</a></p>
+    </section>
   </main>
 </body>
 </html>

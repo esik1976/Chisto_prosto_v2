@@ -5,26 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Новый заказ</title>
   <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
   <main class="container">
-    <h1>Новый заказ</h1>
-    <form method="post" action="/orders/new">
-      <label>
-        Адрес
-        <input type="text" name="address" required />
-      </label>
-      <label>
-        Описание
-        <textarea name="description" rows="3"></textarea>
-      </label>
-      <label>
-        Цена
-        <input type="number" name="price" min="0" value="0" />
-      </label>
-      <button type="submit">Создать</button>
-    </form>
-    <p><a href="/orders">Назад к списку</a></p>
+    <header class="brand compact">
+      <div class="logo">CP</div>
+      <div>
+        <h1>Новый заказ</h1>
+        <p class="subtitle">Заполните форму для размещения заявки</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <form method="post" action="/orders/new">
+        <label>
+          Адрес
+          <input type="text" name="address" required />
+        </label>
+        <label>
+          Описание
+          <textarea name="description" rows="3"></textarea>
+        </label>
+        <label>
+          Цена
+          <input type="number" name="price" min="0" value="0" />
+        </label>
+        <button class="btn" type="submit">Создать</button>
+      </form>
+      <p class="hint"><a href="/orders">Назад к списку</a></p>
+    </section>
   </main>
 </body>
 </html>
