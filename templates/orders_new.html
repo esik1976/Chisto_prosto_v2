@@ -1,0 +1,30 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Новый заказ</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Новый заказ</h1>
+    <form method="post" action="/orders/new">
+      <label>
+        Адрес
+        <input type="text" name="address" required />
+      </label>
+      <label>
+        Описание
+        <textarea name="description" rows="3"></textarea>
+      </label>
+      <label>
+        Цена
+        <input type="number" name="price" min="0" value="0" />
+      </label>
+      <button type="submit">Создать</button>
+    </form>
+    <p><a href="/orders">Назад к списку</a></p>
+  </main>
+</body>
+</html>

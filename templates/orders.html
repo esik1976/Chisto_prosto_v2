@@ -1,0 +1,44 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Заказы</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Заказы</h1>
+    <p><a href="/orders/new">Создать заказ</a></p>
+
+    {% if orders %}
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Адрес</th>
+          <th>Описание</th>
+          <th>Цена</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td>{{ order.id }}</td>
+          <td>{{ order.address }}</td>
+          <td>{{ order.description }}</td>
+          <td>{{ order.price }}</td>
+          <td>{{ order.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>Заказов пока нет.</p>
+    {% endif %}
+
+    <p><a href="/">На главную</a></p>
+  </main>
+</body>
+</html>
