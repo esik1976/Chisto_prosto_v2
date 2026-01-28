@@ -8,8 +8,19 @@
 </head>
 <body>
   <main class="container">
+    <div class="topbar">
+      <div>
+        <strong>Пользователь:</strong> {{ user_name }} ({{ user_role }})
+      </div>
+      <form method="post" action="/logout">
+        <button type="submit">Выйти</button>
+      </form>
+    </div>
+
     <h1>Заказы</h1>
+    {% if user_role in ["customer", "admin"] %}
     <p><a href="/orders/new">Создать заказ</a></p>
+    {% endif %}
 
     {% if orders %}
     <table>
@@ -36,12 +47,12 @@
           <td>{{ order.assignee or "—" }}</td>
           <td>{{ "оплачено" if order.paid else "не оплачено" }}</td>
           <td>
-            {% if order.status == "new" %}
+            {% if user_role in ["worker", "admin"] and order.status == "new" %}
             <form method="post" action="/orders/{{ order.id }}/take" class="inline-form">
               <input type="text" name="assignee" placeholder="Имя исполнителя" required />
               <button type="submit">Взять</button>
             </form>
-            {% elif order.status == "in_progress" %}
+            {% elif user_role in ["worker", "admin"] and order.status == "in_progress" %}
             <form method="post" action="/orders/{{ order.id }}/complete" class="inline-form">
               <button type="submit">Завершить</button>
             </form>
@@ -49,6 +60,7 @@
             —
             {% endif %}
 
+            {% if user_role == "admin" %}
             <form method="post" action="/orders/{{ order.id }}/status" class="inline-form admin-form">
               <select name="status">
                 <option value="new">new</option>
@@ -62,6 +74,7 @@
             <form method="post" action="/orders/{{ order.id }}/pay" class="inline-form admin-form">
               <button type="submit">Оплачено</button>
             </form>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}

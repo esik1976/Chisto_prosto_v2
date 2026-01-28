@@ -2,8 +2,16 @@
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from .db import init_db
+from .auth import (
+    ROLES,
+    get_user_name,
+    get_user_role,
+    set_user_session,
+    clear_user_session,
+)
 from .storage import (
     list_orders,
     create_order,
@@ -14,6 +22,7 @@ from .storage import (
 )
 
 app = FastAPI()
+app.add_middleware(SessionMiddleware, secret_key="dev-secret")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
@@ -24,6 +33,37 @@ def startup() -> None:
     init_db()
 
 
+def _require_user(request: Request):
+    if not get_user_role(request):
+        return RedirectResponse(url="/login", status_code=303)
+    return None
+
+
+def _require_role(request: Request, allowed: set[str]):
+    role = get_user_role(request)
+    if role not in allowed:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@app.post("/login")
+def login(request: Request, name: str = Form(...), role: str = Form(...)):
+    if role not in ROLES:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    set_user_session(request, name, role)
+    return RedirectResponse(url="/orders", status_code=303)
+
+
+@app.post("/logout")
+def logout(request: Request):
+    clear_user_session(request)
+    return RedirectResponse(url="/login", status_code=303)
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -31,29 +71,53 @@ def home(request: Request):
 
 @app.get("/orders", response_class=HTMLResponse)
 def orders_list(request: Request):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
     return templates.TemplateResponse(
         "orders.html",
-        {"request": request, "orders": list_orders()},
+        {
+            "request": request,
+            "orders": list_orders(),
+            "user_name": get_user_name(request),
+            "user_role": get_user_role(request),
+        },
     )
 
 
 @app.get("/orders/new", response_class=HTMLResponse)
 def orders_new(request: Request):
-    return templates.TemplateResponse("orders_new.html", {"request": request})
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    _require_role(request, {"customer", "admin"})
+    return templates.TemplateResponse(
+        "orders_new.html",
+        {"request": request, "user_role": get_user_role(request)},
+    )
 
 
 @app.post("/orders/new")
 def orders_create(
+    request: Request,
     address: str = Form(...),
     description: str = Form(""),
     price: int = Form(0),
 ):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    _require_role(request, {"customer", "admin"})
     create_order(address, description, price)
     return RedirectResponse(url="/orders", status_code=303)
 
 
 @app.post("/orders/{order_id}/take")
-def orders_take(order_id: int, assignee: str = Form(...)):
+def orders_take(request: Request, order_id: int, assignee: str = Form(...)):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    _require_role(request, {"worker", "admin"})
     try:
         take_order(order_id, assignee)
     except ValueError:
@@ -62,7 +126,11 @@ def orders_take(order_id: int, assignee: str = Form(...)):
 
 
 @app.post("/orders/{order_id}/complete")
-def orders_complete(order_id: int):
+def orders_complete(request: Request, order_id: int):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    _require_role(request, {"worker", "admin"})
     try:
         complete_order(order_id)
     except ValueError:
@@ -71,7 +139,11 @@ def orders_complete(order_id: int):
 
 
 @app.post("/orders/{order_id}/status")
-def orders_status(order_id: int, status: str = Form(...)):
+def orders_status(request: Request, order_id: int, status: str = Form(...)):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    _require_role(request, {"admin"})
     try:
         set_status(order_id, status)
     except ValueError:
@@ -80,7 +152,11 @@ def orders_status(order_id: int, status: str = Form(...)):
 
 
 @app.post("/orders/{order_id}/pay")
-def orders_pay(order_id: int):
+def orders_pay(request: Request, order_id: int):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    _require_role(request, {"admin"})
     try:
         mark_paid(order_id)
     except ValueError:
