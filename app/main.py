@@ -141,12 +141,14 @@ def orders_create(
     address: str = Form(...),
     description: str = Form(""),
     price: int = Form(0),
+    latitude: float | None = Form(None),
+    longitude: float | None = Form(None),
 ):
     redirect = _require_user(request)
     if redirect:
         return redirect
     _require_role(request, {"customer", "admin"})
-    create_order(address, description, price)
+    create_order(address, description, price, latitude, longitude)
     return RedirectResponse(url="/orders", status_code=303)
 
 

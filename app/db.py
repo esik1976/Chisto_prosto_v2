@@ -1,5 +1,4 @@
-﻿import os
-import sqlite3
+﻿import sqlite3
 from pathlib import Path
 
 DB_PATH = Path("data/app.db")
@@ -27,6 +26,14 @@ def init_db() -> None:
             )
             """
         )
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(orders)").fetchall()
+        }
+        if "latitude" not in columns:
+            conn.execute("ALTER TABLE orders ADD COLUMN latitude REAL")
+        if "longitude" not in columns:
+            conn.execute("ALTER TABLE orders ADD COLUMN longitude REAL")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS users (

@@ -13,6 +13,8 @@ class Order:
     status: str = "new"
     assignee: Optional[str] = None
     paid: bool = False
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 def _row_to_order(row) -> Order:
@@ -24,13 +26,19 @@ def _row_to_order(row) -> Order:
         status=row["status"] or "new",
         assignee=row["assignee"],
         paid=bool(row["paid"]),
+        latitude=row["latitude"],
+        longitude=row["longitude"],
     )
 
 
 def list_orders() -> List[Order]:
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT id, address, description, price, status, assignee, paid FROM orders ORDER BY id"
+            """
+            SELECT id, address, description, price, status, assignee, paid, latitude, longitude
+            FROM orders
+            ORDER BY id DESC
+            """
         ).fetchall()
     return [_row_to_order(row) for row in rows]
 
@@ -38,7 +46,11 @@ def list_orders() -> List[Order]:
 def get_order(order_id: int) -> Order:
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT id, address, description, price, status, assignee, paid FROM orders WHERE id = ?",
+            """
+            SELECT id, address, description, price, status, assignee, paid, latitude, longitude
+            FROM orders
+            WHERE id = ?
+            """,
             (order_id,),
         ).fetchone()
     if not row:
@@ -46,14 +58,20 @@ def get_order(order_id: int) -> Order:
     return _row_to_order(row)
 
 
-def create_order(address: str, description: str, price: int) -> Order:
+def create_order(
+    address: str,
+    description: str,
+    price: int,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+) -> Order:
     with get_conn() as conn:
         cur = conn.execute(
             """
-            INSERT INTO orders (address, description, price, status, assignee, paid)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO orders (address, description, price, status, assignee, paid, latitude, longitude)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (address, description, price, "new", None, 0),
+            (address, description, price, "new", None, 0, latitude, longitude),
         )
         order_id = cur.lastrowid
     return get_order(order_id)

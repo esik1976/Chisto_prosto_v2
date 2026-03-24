@@ -42,6 +42,7 @@
             <th>Статус</th>
             <th>Исполнитель</th>
             <th>Оплата</th>
+            <th>Точка</th>
             <th>Действия</th>
           </tr>
         </thead>
@@ -55,6 +56,13 @@
             <td><span class="badge">{{ order.status }}</span></td>
             <td>{{ order.assignee or "—" }}</td>
             <td>{{ "оплачено" if order.paid else "не оплачено" }}</td>
+            <td>
+              {% if order.latitude is not none and order.longitude is not none %}
+              <span class="coords">{{ "%.5f"|format(order.latitude) }}, {{ "%.5f"|format(order.longitude) }}</span>
+              {% else %}
+              —
+              {% endif %}
+            </td>
             <td>
               {% if user_role in ["worker", "admin"] and order.status == "new" %}
               <form method="post" action="/orders/{{ order.id }}/take" class="inline-form">
