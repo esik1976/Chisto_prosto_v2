@@ -10,16 +10,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <main class="container">
-    <header class="brand compact">
-      <div class="logo">CP</div>
-      <div>
-        <h1>Вход</h1>
-        <p class="subtitle">Добро пожаловать обратно</p>
+  <main class="container auth-shell">
+    <section class="auth-intro">
+      <header class="brand compact">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Вход</h1>
+          <p class="subtitle">Управление заказами на уборку в одном окне</p>
+        </div>
+      </header>
+      <div class="intro-copy">
+        <span class="eyebrow">Городской сервис</span>
+        <h2>Чистый интерфейс без лишнего шума.</h2>
+        <p>
+          Войдите в систему, чтобы создавать заказы, назначать исполнителей и
+          отслеживать ход работ.
+        </p>
       </div>
-    </header>
+    </section>
 
-    <section class="card">
+    <section class="card auth-card">
       {% if error %}
       <p class="error">{{ error }}</p>
       {% endif %}

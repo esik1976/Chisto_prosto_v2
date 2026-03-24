@@ -10,16 +10,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <main class="container">
-    <header class="brand compact">
-      <div class="logo">CP</div>
-      <div>
-        <h1>Регистрация</h1>
-        <p class="subtitle">Создайте аккаунт за минуту</p>
+  <main class="container auth-shell">
+    <section class="auth-intro">
+      <header class="brand compact">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Регистрация</h1>
+          <p class="subtitle">Создание аккаунта для работы в системе</p>
+        </div>
+      </header>
+      <div class="intro-copy">
+        <span class="eyebrow">Быстрый старт</span>
+        <h2>Новый пользователь подключается за минуту.</h2>
+        <p>
+          Зарегистрируйте учетную запись и сразу переходите к работе с заказами,
+          ролями и статусами выполнения.
+        </p>
       </div>
-    </header>
+    </section>
 
-    <section class="card">
+    <section class="card auth-card">
       {% if error %}
       <p class="error">{{ error }}</p>
       {% endif %}
