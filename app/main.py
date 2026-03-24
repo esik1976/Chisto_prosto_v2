@@ -4,6 +4,10 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from sqlite3 import IntegrityError
+from urllib.error import URLError, HTTPError
+from urllib.parse import urlencode
+from urllib.request import Request as UrlRequest, urlopen
+import json
 
 from .db import init_db
 from .auth import (
@@ -46,6 +50,31 @@ def _require_role(request: Request, allowed: set[str]):
     role = get_user_role(request)
     if role not in allowed:
         raise HTTPException(status_code=403, detail="Forbidden")
+
+
+@app.get("/api/reverse-geocode")
+def reverse_geocode(lat: float, lon: float):
+    params = urlencode(
+        {
+            "format": "jsonv2",
+            "lat": lat,
+            "lon": lon,
+            "accept-language": "ru",
+        }
+    )
+    request = UrlRequest(
+        f"https://nominatim.openstreetmap.org/reverse?{params}",
+        headers={
+            "User-Agent": "ChistoProsto/1.0 (contact: support@chistoprosto.local)",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError):
+        return {"address": ""}
+    return {"address": payload.get("display_name", "")}
 
 
 @app.get("/login", response_class=HTMLResponse)
