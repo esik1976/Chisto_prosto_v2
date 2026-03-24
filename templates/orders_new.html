@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Новый заказ</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css?v=2" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -35,7 +35,15 @@
             </div>
             <div class="map-coordinates" id="map-coordinates">Точка не выбрана</div>
           </div>
-          <div id="map" class="map-box" aria-label="Карта Астаны"></div>
+          <div
+            id="map"
+            class="map-box"
+            aria-label="Карта Астаны"
+            style="height: 420px; min-height: 420px; width: 100%; background: linear-gradient(180deg, #dff4ef, #f4fbfc); border: 1px solid rgba(16, 42, 67, 0.12);"
+          ></div>
+          <p class="hint" id="map-fallback" style="display: none; margin-top: 10px;">
+            Карта не загрузилась. Проверь подключение к CDN или настройки сети в браузере/Render.
+          </p>
           <input type="hidden" name="latitude" id="latitude" />
           <input type="hidden" name="longitude" id="longitude" />
         </div>
@@ -64,37 +72,49 @@
     crossorigin=""
   ></script>
   <script>
-    const astanaCenter = [51.1694, 71.4491];
-    const map = L.map("map").setView(astanaCenter, 11);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
-
-    let marker = null;
     const latitudeInput = document.getElementById("latitude");
     const longitudeInput = document.getElementById("longitude");
     const coordinatesLabel = document.getElementById("map-coordinates");
+    const fallback = document.getElementById("map-fallback");
+    const mapElement = document.getElementById("map");
 
-    function setPoint(latlng) {
-      const lat = latlng.lat.toFixed(6);
-      const lng = latlng.lng.toFixed(6);
+    if (typeof window.L === "undefined") {
+      fallback.style.display = "block";
+      mapElement.innerHTML = '<div style="padding: 24px; color: #0b5f6b; font-weight: 700;">Не удалось загрузить библиотеку карты.</div>';
+    } else {
+      const astanaCenter = [51.1694, 71.4491];
+      const map = L.map("map").setView(astanaCenter, 11);
 
-      latitudeInput.value = lat;
-      longitudeInput.value = lng;
-      coordinatesLabel.textContent = `Широта: ${lat}, долгота: ${lng}`;
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
 
-      if (marker) {
-        marker.setLatLng(latlng);
-      } else {
-        marker = L.marker(latlng).addTo(map);
+      let marker = null;
+
+      function setPoint(latlng) {
+        const lat = latlng.lat.toFixed(6);
+        const lng = latlng.lng.toFixed(6);
+
+        latitudeInput.value = lat;
+        longitudeInput.value = lng;
+        coordinatesLabel.textContent = `Широта: ${lat}, долгота: ${lng}`;
+
+        if (marker) {
+          marker.setLatLng(latlng);
+        } else {
+          marker = L.marker(latlng).addTo(map);
+        }
       }
-    }
 
-    map.on("click", function (event) {
-      setPoint(event.latlng);
-    });
+      map.on("click", function (event) {
+        setPoint(event.latlng);
+      });
+
+      setTimeout(function () {
+        map.invalidateSize();
+      }, 200);
+    }
   </script>
 </body>
 </html>
