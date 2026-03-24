@@ -50,7 +50,7 @@ def _require_role(request: Request, allowed: set[str]):
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html", {"request": request})
 
 
 @app.post("/login")
@@ -58,6 +58,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
     user = authenticate(username, password)
     if not user:
         return templates.TemplateResponse(
+            request,
             "login.html",
             {"request": request, "error": "Неверный логин или пароль"},
             status_code=400,
@@ -68,7 +69,7 @@ def login(request: Request, username: str = Form(...), password: str = Form(...)
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
+    return templates.TemplateResponse(request, "register.html", {"request": request})
 
 
 @app.post("/register")
@@ -84,6 +85,7 @@ def register(
         user_id = create_user(username, role, password)
     except IntegrityError:
         return templates.TemplateResponse(
+            request,
             "register.html",
             {"request": request, "error": "Пользователь уже существует"},
             status_code=400,
@@ -100,7 +102,7 @@ def logout(request: Request):
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {"request": request})
 
 
 @app.get("/orders", response_class=HTMLResponse)
@@ -109,6 +111,7 @@ def orders_list(request: Request):
     if redirect:
         return redirect
     return templates.TemplateResponse(
+        request,
         "orders.html",
         {
             "request": request,
@@ -126,6 +129,7 @@ def orders_new(request: Request):
         return redirect
     _require_role(request, {"customer", "admin"})
     return templates.TemplateResponse(
+        request,
         "orders_new.html",
         {"request": request, "user_role": get_user_role(request)},
     )
