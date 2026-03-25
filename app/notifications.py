@@ -53,15 +53,29 @@ def send_order_created_email(order) -> None:
         with urlopen(request, timeout=15) as response:
             body = response.read().decode("utf-8")
             logger.info(
-                "Order created email sent for order_id=%s to=%s response=%s",
+                "Order created email sent order_id=%s from=%s to=%s response=%s",
                 order.id,
+                EMAIL_FROM,
                 NOTIFY_EMAIL_TO,
                 body,
             )
     except HTTPError as exc:
         details = exc.read().decode("utf-8", errors="replace")
-        logger.warning("Resend HTTP error for order_id=%s: %s %s", order.id, exc, details)
+        logger.error(
+            "Resend HTTP error order_id=%s from=%s to=%s status=%s body=%s",
+            order.id,
+            EMAIL_FROM,
+            NOTIFY_EMAIL_TO,
+            exc.code,
+            details,
+        )
         raise
     except URLError as exc:
-        logger.warning("Resend network error for order_id=%s: %s", order.id, exc)
+        logger.error(
+            "Resend network error order_id=%s from=%s to=%s error=%s",
+            order.id,
+            EMAIL_FROM,
+            NOTIFY_EMAIL_TO,
+            exc,
+        )
         raise
