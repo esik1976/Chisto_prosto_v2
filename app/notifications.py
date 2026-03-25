@@ -1,7 +1,6 @@
-﻿import json
-import logging
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+﻿import logging
+
+import requests
 
 from .config import EMAIL_FROM, NOTIFY_EMAIL_TO, RESEND_API_KEY
 
@@ -38,39 +37,37 @@ def send_order_created_email(order) -> None:
         ),
     }
 
-    request = Request(
-        "https://api.resend.com/emails",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {RESEND_API_KEY}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-        method="POST",
-    )
-
     try:
-        with urlopen(request, timeout=15) as response:
-            body = response.read().decode("utf-8")
-            logger.info(
-                "Order created email sent order_id=%s from=%s to=%s response=%s",
-                order.id,
-                EMAIL_FROM,
-                NOTIFY_EMAIL_TO,
-                body,
-            )
-    except HTTPError as exc:
-        details = exc.read().decode("utf-8", errors="replace")
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "ChistoProsto/1.0",
+            },
+            json=payload,
+            timeout=15,
+        )
+        response.raise_for_status()
+        logger.info(
+            "Order created email sent order_id=%s from=%s to=%s response=%s",
+            order.id,
+            EMAIL_FROM,
+            NOTIFY_EMAIL_TO,
+            response.text,
+        )
+    except requests.HTTPError:
         logger.error(
             "Resend HTTP error order_id=%s from=%s to=%s status=%s body=%s",
             order.id,
             EMAIL_FROM,
             NOTIFY_EMAIL_TO,
-            exc.code,
-            details,
+            response.status_code,
+            response.text,
         )
         raise
-    except URLError as exc:
+    except requests.RequestException as exc:
         logger.error(
             "Resend network error order_id=%s from=%s to=%s error=%s",
             order.id,
