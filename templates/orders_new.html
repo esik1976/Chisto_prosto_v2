@@ -72,7 +72,23 @@
     const addressInput = document.getElementById("address");
     const addressStatus = document.getElementById("address-status");
 
+    let geocodeTimer = null;
+    let lastLookupKey = "";
+    let rateLimitedUntil = 0;
+
     async function loadAddress(lat, lng) {
+      const now = Date.now();
+      if (rateLimitedUntil > now) {
+        addressStatus.textContent = "Сервис адресов временно перегружен. Введите адрес вручную.";
+        return;
+      }
+
+      const lookupKey = `${lat},${lng}`;
+      if (lookupKey === lastLookupKey) {
+        return;
+      }
+      lastLookupKey = lookupKey;
+
       addressStatus.textContent = "Ищем адрес...";
 
       try {
@@ -85,14 +101,26 @@
         if (data && data.address) {
           addressInput.value = data.address;
           addressStatus.textContent = "Адрес подставлен автоматически.";
+        } else if (data && data.error === "http_429") {
+          rateLimitedUntil = Date.now() + 60000;
+          addressStatus.textContent = "Сервис адресов временно перегружен. Введите адрес вручную.";
         } else if (data && data.error) {
-          addressStatus.textContent = `Адрес не найден автоматически (${data.error}). Введите его вручную.`;
+          addressStatus.textContent = "Адрес не найден автоматически. Введите его вручную.";
         } else {
           addressStatus.textContent = "Адрес не найден. Введите его вручную.";
         }
       } catch (error) {
         addressStatus.textContent = "Не удалось загрузить адрес автоматически. Введите его вручную.";
       }
+    }
+
+    function scheduleAddressLookup(lat, lng) {
+      if (geocodeTimer) {
+        clearTimeout(geocodeTimer);
+      }
+      geocodeTimer = setTimeout(function () {
+        loadAddress(lat, lng);
+      }, 900);
     }
 
     if (typeof window.L === "undefined") {
@@ -109,7 +137,7 @@
 
       let marker = null;
 
-      async function setPoint(latlng) {
+      function setPoint(latlng) {
         const lat = latlng.lat.toFixed(6);
         const lng = latlng.lng.toFixed(6);
 
@@ -123,7 +151,7 @@
           marker = L.marker(latlng).addTo(map);
         }
 
-        await loadAddress(lat, lng);
+        scheduleAddressLookup(lat, lng);
       }
 
       map.on("click", function (event) {
