@@ -10,6 +10,7 @@ from urllib.request import Request as UrlRequest, urlopen
 import json
 import logging
 
+from .config import APP_CONTACT_EMAIL
 from .db import init_db
 from .auth import (
     ROLES,
@@ -57,27 +58,33 @@ def _require_role(request: Request, allowed: set[str]):
 
 @app.get("/api/reverse-geocode")
 def reverse_geocode(lat: float, lon: float):
-    params = urlencode(
-        {
-            "format": "jsonv2",
-            "lat": lat,
-            "lon": lon,
-            "accept-language": "ru",
-        }
-    )
+    params = {
+        "format": "jsonv2",
+        "lat": lat,
+        "lon": lon,
+        "accept-language": "ru",
+        "addressdetails": 1,
+    }
+    if APP_CONTACT_EMAIL:
+        params["email"] = APP_CONTACT_EMAIL
+
     request = UrlRequest(
-        f"https://nominatim.openstreetmap.org/reverse?{params}",
+        f"https://nominatim.openstreetmap.org/reverse?{urlencode(params)}",
         headers={
-            "User-Agent": "ChistoProsto/1.0 (contact: support@chistoprosto.local)",
+            "User-Agent": f"ChistoProsto/1.0 ({APP_CONTACT_EMAIL or 'no-contact'})",
             "Accept": "application/json",
         },
     )
     try:
         with urlopen(request, timeout=10) as response:
             payload = json.loads(response.read().decode("utf-8"))
-    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError):
-        return {"address": ""}
-    return {"address": payload.get("display_name", "")}
+    except HTTPError as exc:
+        logger.warning("Reverse geocode HTTP error for lat=%s lon=%s: %s", lat, lon, exc)
+        return {"address": "", "error": f"http_{exc.code}"}
+    except (URLError, TimeoutError, json.JSONDecodeError) as exc:
+        logger.warning("Reverse geocode failed for lat=%s lon=%s: %s", lat, lon, exc)
+        return {"address": "", "error": "request_failed"}
+    return {"address": payload.get("display_name", ""), "error": ""}
 
 
 @app.get("/login", response_class=HTMLResponse)

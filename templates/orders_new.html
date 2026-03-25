@@ -85,6 +85,8 @@
         if (data && data.address) {
           addressInput.value = data.address;
           addressStatus.textContent = "Адрес подставлен автоматически.";
+        } else if (data && data.error) {
+          addressStatus.textContent = `Адрес не найден автоматически (${data.error}). Введите его вручную.`;
         } else {
           addressStatus.textContent = "Адрес не найден. Введите его вручную.";
         }

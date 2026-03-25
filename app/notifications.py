@@ -18,6 +18,11 @@ def send_order_created_email(order) -> None:
     if not NOTIFY_EMAIL_TO:
         logger.info("Email notifications are disabled: NOTIFY_EMAIL_TO is empty")
         return
+    if not SMTP_USERNAME or not SMTP_PASSWORD or not SMTP_FROM:
+        logger.warning(
+            "Email notifications are misconfigured: SMTP_USERNAME/SMTP_PASSWORD/SMTP_FROM must be set"
+        )
+        return
 
     message = EmailMessage()
     message["Subject"] = f"Новый заказ #{order.id}"
@@ -41,6 +46,9 @@ def send_order_created_email(order) -> None:
     )
 
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as smtp:
+        smtp.ehlo()
         smtp.starttls()
+        smtp.ehlo()
         smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
         smtp.send_message(message)
+    logger.info("Order created email sent for order_id=%s to=%s", order.id, NOTIFY_EMAIL_TO)
