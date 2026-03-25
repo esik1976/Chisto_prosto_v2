@@ -13,19 +13,20 @@ uvicorn app.main:app --reload
 
 Откройте: http://127.0.0.1:8000
 
-## Email уведомления
+## Email уведомления через Resend
 
-1. Скопируйте `.env.example` в `.env`
-2. Заполните Gmail SMTP настройки
-3. Для `SMTP_PASSWORD` используйте Google App Password
+1. Создайте аккаунт в Resend
+2. Получите API key
+3. Скопируйте `.env.example` в `.env`
+4. Заполните переменные
 
 Переменные:
 
 ```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your_email@gmail.com
-SMTP_PASSWORD=your_google_app_password
-SMTP_FROM=your_email@gmail.com
+RESEND_API_KEY=re_xxxxx
+EMAIL_FROM=onboarding@resend.dev
 NOTIFY_EMAIL_TO=your_email@gmail.com
+APP_CONTACT_EMAIL=your_email@gmail.com
 ```
+
+Для Render добавьте те же переменные в `Environment` и выполните redeploy.

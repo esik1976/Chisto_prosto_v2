@@ -17,10 +17,7 @@ def _load_dotenv() -> None:
 
 _load_dotenv()
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
-SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USERNAME)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+EMAIL_FROM = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
 NOTIFY_EMAIL_TO = os.getenv("NOTIFY_EMAIL_TO", "")
-APP_CONTACT_EMAIL = os.getenv("APP_CONTACT_EMAIL", SMTP_FROM or NOTIFY_EMAIL_TO)
+APP_CONTACT_EMAIL = os.getenv("APP_CONTACT_EMAIL", EMAIL_FROM or NOTIFY_EMAIL_TO)
