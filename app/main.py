@@ -8,6 +8,7 @@ from urllib.error import URLError, HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request as UrlRequest, urlopen
 import json
+import logging
 
 from .db import init_db
 from .auth import (
@@ -19,6 +20,7 @@ from .auth import (
     set_user_session,
     clear_user_session,
 )
+from .notifications import send_order_created_email
 from .storage import (
     list_orders,
     create_order,
@@ -33,6 +35,7 @@ app.add_middleware(SessionMiddleware, secret_key="dev-secret")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
+logger = logging.getLogger(__name__)
 
 
 @app.on_event("startup")
@@ -177,7 +180,11 @@ def orders_create(
     if redirect:
         return redirect
     _require_role(request, {"customer", "admin"})
-    create_order(address, description, price, latitude, longitude)
+    order = create_order(address, description, price, latitude, longitude)
+    try:
+        send_order_created_email(order)
+    except Exception as exc:
+        logger.exception("Failed to send order created email: %s", exc)
     return RedirectResponse(url="/orders", status_code=303)
 
 
