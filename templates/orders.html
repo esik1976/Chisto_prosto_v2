@@ -58,7 +58,17 @@
             <td>{{ "оплачено" if order.paid else "не оплачено" }}</td>
             <td>
               {% if order.latitude is not none and order.longitude is not none %}
-              <span class="coords">{{ "%.5f"|format(order.latitude) }}, {{ "%.5f"|format(order.longitude) }}</span>
+              <div class="coords-wrap">
+                <span class="coords">{{ "%.5f"|format(order.latitude) }}, {{ "%.5f"|format(order.longitude) }}</span>
+                <a
+                  class="map-link"
+                  href="https://www.openstreetmap.org/?mlat={{ order.latitude }}&mlon={{ order.longitude }}#map=16/{{ order.latitude }}/{{ order.longitude }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Открыть на карте
+                </a>
+              </div>
               {% else %}
               —
               {% endif %}
