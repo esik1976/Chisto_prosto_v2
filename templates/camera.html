@@ -1,0 +1,51 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Онлайн-камера Астаны</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main class="container">
+    <header class="brand compact">
+      <div class="logo">CP</div>
+      <div>
+        <h1>Онлайн-камера Астаны</h1>
+        <p class="subtitle">Визуальный контроль городской среды</p>
+      </div>
+    </header>
+
+    <section class="card camera-card">
+      <div class="map-header">
+        <div>
+          <span class="eyebrow">Публичная камера</span>
+          <h2>Астана в реальном времени</h2>
+          <p>
+            Камера подключена как внешний публичный источник. Если встраивание
+            заблокировано владельцем сайта, откройте камеру по ссылке ниже.
+          </p>
+        </div>
+      </div>
+
+      <iframe
+        class="camera-frame"
+        src="https://www.iplivecams.com/live-cams/astana-kazakhstan/"
+        title="Онлайн-камера Астаны"
+        loading="lazy"
+        referrerpolicy="no-referrer"
+      ></iframe>
+
+      <div class="actions">
+        <a class="btn" href="https://www.iplivecams.com/live-cams/astana-kazakhstan/" target="_blank" rel="noopener noreferrer">
+          Открыть камеру
+        </a>
+        <a class="btn ghost" href="/">На главную</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -263,6 +263,19 @@ button {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
+.camera-card {
+  display: grid;
+  gap: 18px;
+}
+
+.camera-frame {
+  width: 100%;
+  min-height: 520px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--accent-soft);
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -373,5 +386,9 @@ table th {
 
   .map-box {
     height: 340px;
+  }
+
+  .camera-frame {
+    min-height: 360px;
   }
 }

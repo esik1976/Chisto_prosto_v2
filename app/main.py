@@ -161,6 +161,11 @@ def home(request: Request):
     return templates.TemplateResponse(request, "index.html", {"request": request})
 
 
+@app.get("/camera", response_class=HTMLResponse)
+def camera(request: Request):
+    return templates.TemplateResponse(request, "camera.html", {"request": request})
+
+
 @app.get("/orders", response_class=HTMLResponse)
 def orders_list(request: Request):
     redirect = _require_user(request)
