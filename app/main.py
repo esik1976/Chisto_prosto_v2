@@ -16,6 +16,7 @@ from .auth import (
     ROLES,
     create_user,
     authenticate,
+    get_user_id,
     get_user_name,
     get_user_role,
     set_user_session,
@@ -24,6 +25,8 @@ from .auth import (
 from .notifications import send_order_created_email
 from .storage import (
     list_orders,
+    list_orders_for_customer,
+    list_orders_for_worker,
     create_order,
     take_order,
     complete_order,
@@ -54,6 +57,20 @@ def _require_role(request: Request, allowed: set[str]):
     role = get_user_role(request)
     if role not in allowed:
         raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def _orders_for_user(request: Request):
+    role = get_user_role(request)
+    user_id = get_user_id(request)
+    user_name = get_user_name(request)
+
+    if role == "admin":
+        return list_orders()
+    if role == "customer" and user_id is not None:
+        return list_orders_for_customer(user_id)
+    if role == "worker" and user_name:
+        return list_orders_for_worker(user_name)
+    return []
 
 
 @app.get("/api/reverse-geocode")
@@ -154,7 +171,7 @@ def orders_list(request: Request):
         "orders.html",
         {
             "request": request,
-            "orders": list_orders(),
+            "orders": _orders_for_user(request),
             "user_name": get_user_name(request),
             "user_role": get_user_role(request),
         },
@@ -187,7 +204,14 @@ def orders_create(
     if redirect:
         return redirect
     _require_role(request, {"customer", "admin"})
-    order = create_order(address, description, price, latitude, longitude)
+    order = create_order(
+        address,
+        description,
+        price,
+        latitude,
+        longitude,
+        get_user_id(request),
+    )
     try:
         send_order_created_email(order)
     except Exception as exc:

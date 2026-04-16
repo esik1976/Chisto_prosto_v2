@@ -39,6 +39,10 @@ def authenticate(username: str, password: str) -> Optional[dict]:
     return {"id": row["id"], "username": row["username"], "role": row["role"]}
 
 
+def get_user_id(request) -> Optional[int]:
+    return request.session.get("user_id")
+
+
 def get_user_name(request) -> Optional[str]:
     return request.session.get("user_name")
 

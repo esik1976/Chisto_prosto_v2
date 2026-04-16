@@ -15,6 +15,7 @@ class Order:
     paid: bool = False
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    customer_id: Optional[int] = None
 
 
 def _row_to_order(row) -> Order:
@@ -28,26 +29,43 @@ def _row_to_order(row) -> Order:
         paid=bool(row["paid"]),
         latitude=row["latitude"],
         longitude=row["longitude"],
+        customer_id=row["customer_id"],
     )
 
 
-def list_orders() -> List[Order]:
+def _select_orders(where: str = "", params: tuple = ()) -> List[Order]:
+    query = """
+        SELECT id, address, description, price, status, assignee, paid, latitude, longitude, customer_id
+        FROM orders
+    """
+    if where:
+        query += f" WHERE {where}"
+    query += " ORDER BY id DESC"
     with get_conn() as conn:
-        rows = conn.execute(
-            """
-            SELECT id, address, description, price, status, assignee, paid, latitude, longitude
-            FROM orders
-            ORDER BY id DESC
-            """
-        ).fetchall()
+        rows = conn.execute(query, params).fetchall()
     return [_row_to_order(row) for row in rows]
+
+
+def list_orders() -> List[Order]:
+    return _select_orders()
+
+
+def list_orders_for_customer(customer_id: int) -> List[Order]:
+    return _select_orders("customer_id = ?", (customer_id,))
+
+
+def list_orders_for_worker(worker_name: str) -> List[Order]:
+    return _select_orders(
+        "status = ? OR assignee = ?",
+        ("new", worker_name),
+    )
 
 
 def get_order(order_id: int) -> Order:
     with get_conn() as conn:
         row = conn.execute(
             """
-            SELECT id, address, description, price, status, assignee, paid, latitude, longitude
+            SELECT id, address, description, price, status, assignee, paid, latitude, longitude, customer_id
             FROM orders
             WHERE id = ?
             """,
@@ -64,14 +82,15 @@ def create_order(
     price: int,
     latitude: Optional[float] = None,
     longitude: Optional[float] = None,
+    customer_id: Optional[int] = None,
 ) -> Order:
     with get_conn() as conn:
         cur = conn.execute(
             """
-            INSERT INTO orders (address, description, price, status, assignee, paid, latitude, longitude)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO orders (address, description, price, status, assignee, paid, latitude, longitude, customer_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (address, description, price, "new", None, 0, latitude, longitude),
+            (address, description, price, "new", None, 0, latitude, longitude, customer_id),
         )
         order_id = cur.lastrowid
     return get_order(order_id)
