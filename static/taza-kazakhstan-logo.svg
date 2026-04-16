@@ -1,0 +1,14 @@
+﻿<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Таза Казахстан</title>
+  <desc id="desc">Логотип экологической акции Таза Казахстан</desc>
+  <rect width="1200" height="630" fill="white"/>
+  <g transform="translate(265 50)">
+    <path d="M430 300V120C430 62 468 20 525 8C574 -3 643 2 669 10" stroke="#009E2C" stroke-width="27" stroke-linecap="round"/>
+    <path d="M430 118C389 60 329 42 258 52C255 109 291 143 367 145C399 146 416 142 430 118Z" stroke="#009E2C" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M430 120C487 145 548 136 589 109C614 92 628 63 637 26C582 20 538 29 503 53C488 63 475 77 465 93" stroke="#009E2C" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M430 294C475 304 527 296 570 273C604 254 622 225 628 181" stroke="#009E2C" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="315" y="354" fill="#FF7200" font-family="Comic Sans MS, Trebuchet MS, Arial, sans-serif" font-size="145" font-weight="700" font-style="italic">Таза</text>
+  <text x="283" y="474" fill="#FF7200" font-family="Comic Sans MS, Trebuchet MS, Arial, sans-serif" font-size="132" font-weight="700" font-style="italic">Казахстан</text>
+  <text x="287" y="555" fill="#159B35" font-family="Trebuchet MS, Arial, sans-serif" font-size="42" font-weight="700" letter-spacing="1">Жалпыұлттық экологиялық акция</text>
+</svg>
