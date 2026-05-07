@@ -59,18 +59,23 @@ def _require_role(request: Request, allowed: set[str]):
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
-def _orders_for_user(request: Request):
+def _orders_for_user(request: Request, status_filter: str = "all"):
     role = get_user_role(request)
     user_id = get_user_id(request)
     user_name = get_user_name(request)
 
     if role == "admin":
-        return list_orders()
-    if role == "customer" and user_id is not None:
-        return list_orders_for_customer(user_id)
-    if role == "worker" and user_name:
-        return list_orders_for_worker(user_name)
-    return []
+        orders = list_orders()
+    elif role == "customer" and user_id is not None:
+        orders = list_orders_for_customer(user_id)
+    elif role == "worker" and user_name:
+        orders = list_orders_for_worker(user_name)
+    else:
+        orders = []
+
+    if status_filter == "all":
+        return orders
+    return [order for order in orders if order.status == status_filter]
 
 
 @app.get("/api/reverse-geocode")
@@ -167,18 +172,21 @@ def camera(request: Request):
 
 
 @app.get("/orders", response_class=HTMLResponse)
-def orders_list(request: Request):
+def orders_list(request: Request, status: str = "all"):
     redirect = _require_user(request)
     if redirect:
         return redirect
+    allowed_statuses = {"all", "new", "in_progress", "done", "cancelled"}
+    status_filter = status if status in allowed_statuses else "all"
     return templates.TemplateResponse(
         request,
         "orders.html",
         {
             "request": request,
-            "orders": _orders_for_user(request),
+            "orders": _orders_for_user(request, status_filter),
             "user_name": get_user_name(request),
             "user_role": get_user_role(request),
+            "status_filter": status_filter,
         },
     )
 

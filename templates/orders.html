@@ -30,6 +30,14 @@
     </div>
     {% endif %}
 
+    <form class="filters" method="get" action="/orders">
+      <a class="filter-link {% if status_filter == 'all' %}active{% endif %}" href="/orders?status=all">Все</a>
+      <a class="filter-link {% if status_filter == 'new' %}active{% endif %}" href="/orders?status=new">Новые</a>
+      <a class="filter-link {% if status_filter == 'in_progress' %}active{% endif %}" href="/orders?status=in_progress">В работе</a>
+      <a class="filter-link {% if status_filter == 'done' %}active{% endif %}" href="/orders?status=done">Готово</a>
+      <a class="filter-link {% if status_filter == 'cancelled' %}active{% endif %}" href="/orders?status=cancelled">Отменены</a>
+    </form>
+
     {% if orders %}
     <div class="card table-card">
       <table>
@@ -53,7 +61,7 @@
             <td>{{ order.address }}</td>
             <td>{{ order.description }}</td>
             <td>{{ order.price }}</td>
-            <td><span class="badge">{{ order.status }}</span></td>
+            <td><span class="status-badge status-{{ order.status }}">{{ order.status }}</span></td>
             <td>{{ order.assignee or "—" }}</td>
             <td>{{ "оплачено" if order.paid else "не оплачено" }}</td>
             <td>
@@ -74,34 +82,38 @@
               {% endif %}
             </td>
             <td>
-              {% if user_role in ["worker", "admin"] and order.status == "new" %}
-              <form method="post" action="/orders/{{ order.id }}/take" class="inline-form">
-                <input type="text" name="assignee" placeholder="Имя исполнителя" required />
-                <button class="btn" type="submit">Взять</button>
-              </form>
-              {% elif user_role in ["worker", "admin"] and order.status == "in_progress" %}
-              <form method="post" action="/orders/{{ order.id }}/complete" class="inline-form">
-                <button class="btn" type="submit">Завершить</button>
-              </form>
-              {% else %}
-              —
-              {% endif %}
+              <div class="order-actions">
+                {% if user_role in ["worker", "admin"] and order.status == "new" %}
+                <form method="post" action="/orders/{{ order.id }}/take" class="inline-form">
+                  <input type="text" name="assignee" placeholder="Имя исполнителя" required />
+                  <button class="btn" type="submit">Взять</button>
+                </form>
+                {% elif user_role in ["worker", "admin"] and order.status == "in_progress" %}
+                <form method="post" action="/orders/{{ order.id }}/complete" class="inline-form">
+                  <button class="btn" type="submit">Завершить</button>
+                </form>
+                {% endif %}
 
-              {% if user_role == "admin" %}
-              <form method="post" action="/orders/{{ order.id }}/status" class="inline-form admin-form">
-                <select name="status">
-                  <option value="new">new</option>
-                  <option value="in_progress">in_progress</option>
-                  <option value="done">done</option>
-                  <option value="cancelled">cancelled</option>
-                </select>
-                <button class="btn ghost" type="submit">Статус</button>
-              </form>
+                {% if user_role == "admin" %}
+                <form method="post" action="/orders/{{ order.id }}/status" class="inline-form admin-form">
+                  <select name="status">
+                    <option value="new" {% if order.status == "new" %}selected{% endif %}>new</option>
+                    <option value="in_progress" {% if order.status == "in_progress" %}selected{% endif %}>in_progress</option>
+                    <option value="done" {% if order.status == "done" %}selected{% endif %}>done</option>
+                    <option value="cancelled" {% if order.status == "cancelled" %}selected{% endif %}>cancelled</option>
+                  </select>
+                  <button class="btn ghost" type="submit">Статус</button>
+                </form>
 
-              <form method="post" action="/orders/{{ order.id }}/pay" class="inline-form admin-form">
-                <button class="btn ghost" type="submit">Оплачено</button>
-              </form>
-              {% endif %}
+                <form method="post" action="/orders/{{ order.id }}/pay" class="inline-form admin-form">
+                  <button class="btn ghost" type="submit">Оплачено</button>
+                </form>
+                {% endif %}
+
+                {% if not (user_role in ["worker", "admin"] and order.status in ["new", "in_progress"]) and user_role != "admin" %}
+                <span class="muted">Действий нет</span>
+                {% endif %}
+              </div>
             </td>
           </tr>
           {% endfor %}
