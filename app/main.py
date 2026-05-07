@@ -23,15 +23,21 @@ from .auth import (
     clear_user_session,
 )
 from .notifications import send_order_created_email
+from .payments import create_mock_payment
 from .storage import (
     list_orders,
     list_orders_for_customer,
     list_orders_for_worker,
+    get_order,
+    get_order_by_payment_id,
     create_order,
     take_order,
     complete_order,
     set_status,
     mark_paid,
+    set_payment_pending,
+    mark_paid_by_payment_id,
+    mark_payment_failed,
 )
 
 app = FastAPI()
@@ -76,6 +82,15 @@ def _orders_for_user(request: Request, status_filter: str = "all"):
     if status_filter == "all":
         return orders
     return [order for order in orders if order.status == status_filter]
+
+
+def _ensure_can_pay(request: Request, order) -> None:
+    role = get_user_role(request)
+    if role == "admin":
+        return
+    if role == "customer" and order.customer_id == get_user_id(request):
+        return
+    raise HTTPException(status_code=403, detail="Forbidden")
 
 
 @app.get("/api/reverse-geocode")
@@ -284,4 +299,67 @@ def orders_pay(request: Request, order_id: int):
         mark_paid(order_id)
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
+    return RedirectResponse(url="/orders", status_code=303)
+
+
+@app.post("/orders/{order_id}/pay/start")
+def orders_pay_start(request: Request, order_id: int):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    try:
+        order = get_order(order_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Order not found")
+    _ensure_can_pay(request, order)
+    if order.paid:
+        return RedirectResponse(url="/orders", status_code=303)
+
+    payment = create_mock_payment(order)
+    set_payment_pending(order.id, payment.payment_id)
+    return RedirectResponse(url=payment.payment_url, status_code=303)
+
+
+@app.get("/payments/mock/{payment_id}", response_class=HTMLResponse)
+def payment_mock_page(request: Request, payment_id: str):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    try:
+        order = get_order_by_payment_id(payment_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    _ensure_can_pay(request, order)
+    return templates.TemplateResponse(
+        request,
+        "payment_mock.html",
+        {"request": request, "order": order, "payment_id": payment_id},
+    )
+
+
+@app.post("/payments/mock/{payment_id}/success")
+def payment_mock_success(request: Request, payment_id: str):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    try:
+        order = get_order_by_payment_id(payment_id)
+        _ensure_can_pay(request, order)
+        mark_paid_by_payment_id(payment_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    return RedirectResponse(url="/orders", status_code=303)
+
+
+@app.post("/payments/mock/{payment_id}/fail")
+def payment_mock_fail(request: Request, payment_id: str):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    try:
+        order = get_order_by_payment_id(payment_id)
+        _ensure_can_pay(request, order)
+        mark_payment_failed(payment_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Payment not found")
     return RedirectResponse(url="/orders", status_code=303)

@@ -63,7 +63,17 @@
             <td>{{ order.price }}</td>
             <td><span class="status-badge status-{{ order.status }}">{{ order.status }}</span></td>
             <td>{{ order.assignee or "—" }}</td>
-            <td>{{ "оплачено" if order.paid else "не оплачено" }}</td>
+            <td>
+              {% if order.paid %}
+              <span class="payment-badge payment-paid">оплачено</span>
+              {% elif order.payment_status == "pending" %}
+              <span class="payment-badge payment-pending">ожидает оплаты</span>
+              {% elif order.payment_status == "failed" %}
+              <span class="payment-badge payment-failed">ошибка оплаты</span>
+              {% else %}
+              <span class="payment-badge payment-empty">не оплачено</span>
+              {% endif %}
+            </td>
             <td>
               {% if order.latitude is not none and order.longitude is not none %}
               <div class="coords-wrap">
@@ -96,6 +106,12 @@
                 </form>
                 {% endif %}
 
+                {% if user_role in ["customer", "admin"] and not order.paid %}
+                <form method="post" action="/orders/{{ order.id }}/pay/start" class="inline-form">
+                  <button class="btn" type="submit">Оплатить</button>
+                </form>
+                {% endif %}
+
                 {% if user_role == "admin" %}
                 <form method="post" action="/orders/{{ order.id }}/status" class="inline-form admin-form">
                   <select name="status">
@@ -107,12 +123,14 @@
                   <button class="btn ghost" type="submit">Статус</button>
                 </form>
 
+                {% if not order.paid %}
                 <form method="post" action="/orders/{{ order.id }}/pay" class="inline-form admin-form">
                   <button class="btn ghost" type="submit">Оплачено</button>
                 </form>
                 {% endif %}
+                {% endif %}
 
-                {% if not (user_role in ["worker", "admin"] and order.status in ["new", "in_progress"]) and user_role != "admin" %}
+                {% if not (user_role in ["worker", "admin"] and order.status in ["new", "in_progress"]) and user_role not in ["admin", "customer"] %}
                 <span class="muted">Действий нет</span>
                 {% endif %}
               </div>

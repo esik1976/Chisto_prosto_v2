@@ -346,7 +346,8 @@ table th {
 }
 
 .badge,
-.status-badge {
+.status-badge,
+.payment-badge {
   display: inline-block;
   padding: 5px 10px;
   border-radius: 999px;
@@ -354,6 +355,26 @@ table th {
   color: var(--primary-dark);
   font-weight: 700;
   font-size: 12px;
+}
+
+.payment-paid {
+  background: rgba(46, 125, 50, 0.12);
+  color: #1b5e20;
+}
+
+.payment-pending {
+  background: rgba(245, 124, 0, 0.12);
+  color: #a14d00;
+}
+
+.payment-failed {
+  background: rgba(176, 27, 50, 0.1);
+  color: #8a1025;
+}
+
+.payment-empty {
+  background: rgba(98, 125, 152, 0.12);
+  color: var(--muted);
 }
 
 .status-new {
@@ -395,6 +416,30 @@ table th {
 
 .admin-form select {
   width: 140px;
+}
+
+.payment-card {
+  max-width: 720px;
+}
+
+.payment-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0;
+}
+
+.payment-summary > div {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.payment-summary strong {
+  font-size: 1.2rem;
 }
 
 .hint {

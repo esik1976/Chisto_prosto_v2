@@ -36,6 +36,10 @@ def init_db() -> None:
             conn.execute("ALTER TABLE orders ADD COLUMN longitude REAL")
         if "customer_id" not in columns:
             conn.execute("ALTER TABLE orders ADD COLUMN customer_id INTEGER")
+        if "payment_status" not in columns:
+            conn.execute("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'not_started'")
+        if "payment_id" not in columns:
+            conn.execute("ALTER TABLE orders ADD COLUMN payment_id TEXT")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS users (

@@ -16,6 +16,8 @@ class Order:
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     customer_id: Optional[int] = None
+    payment_status: str = "not_started"
+    payment_id: Optional[str] = None
 
 
 def _row_to_order(row) -> Order:
@@ -30,12 +32,15 @@ def _row_to_order(row) -> Order:
         latitude=row["latitude"],
         longitude=row["longitude"],
         customer_id=row["customer_id"],
+        payment_status=row["payment_status"] or "not_started",
+        payment_id=row["payment_id"],
     )
 
 
 def _select_orders(where: str = "", params: tuple = ()) -> List[Order]:
     query = """
-        SELECT id, address, description, price, status, assignee, paid, latitude, longitude, customer_id
+        SELECT id, address, description, price, status, assignee, paid, latitude, longitude, customer_id,
+               payment_status, payment_id
         FROM orders
     """
     if where:
@@ -65,11 +70,28 @@ def get_order(order_id: int) -> Order:
     with get_conn() as conn:
         row = conn.execute(
             """
-            SELECT id, address, description, price, status, assignee, paid, latitude, longitude, customer_id
+            SELECT id, address, description, price, status, assignee, paid, latitude, longitude, customer_id,
+                   payment_status, payment_id
             FROM orders
             WHERE id = ?
             """,
             (order_id,),
+        ).fetchone()
+    if not row:
+        raise ValueError("Order not found")
+    return _row_to_order(row)
+
+
+def get_order_by_payment_id(payment_id: str) -> Order:
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT id, address, description, price, status, assignee, paid, latitude, longitude, customer_id,
+                   payment_status, payment_id
+            FROM orders
+            WHERE payment_id = ?
+            """,
+            (payment_id,),
         ).fetchone()
     if not row:
         raise ValueError("Order not found")
@@ -87,10 +109,25 @@ def create_order(
     with get_conn() as conn:
         cur = conn.execute(
             """
-            INSERT INTO orders (address, description, price, status, assignee, paid, latitude, longitude, customer_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO orders (
+                address, description, price, status, assignee, paid, latitude, longitude, customer_id,
+                payment_status, payment_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (address, description, price, "new", None, 0, latitude, longitude, customer_id),
+            (
+                address,
+                description,
+                price,
+                "new",
+                None,
+                0,
+                latitude,
+                longitude,
+                customer_id,
+                "not_started",
+                None,
+            ),
         )
         order_id = cur.lastrowid
     return get_order(order_id)
@@ -129,8 +166,38 @@ def set_status(order_id: int, status: str) -> None:
 def mark_paid(order_id: int) -> None:
     with get_conn() as conn:
         cur = conn.execute(
-            "UPDATE orders SET paid = ? WHERE id = ?",
-            (1, order_id),
+            "UPDATE orders SET paid = ?, payment_status = ? WHERE id = ?",
+            (1, "paid", order_id),
+        )
+    if cur.rowcount == 0:
+        raise ValueError("Order not found")
+
+
+def set_payment_pending(order_id: int, payment_id: str) -> None:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "UPDATE orders SET payment_status = ?, payment_id = ? WHERE id = ?",
+            ("pending", payment_id, order_id),
+        )
+    if cur.rowcount == 0:
+        raise ValueError("Order not found")
+
+
+def mark_paid_by_payment_id(payment_id: str) -> None:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "UPDATE orders SET paid = ?, payment_status = ? WHERE payment_id = ?",
+            (1, "paid", payment_id),
+        )
+    if cur.rowcount == 0:
+        raise ValueError("Order not found")
+
+
+def mark_payment_failed(payment_id: str) -> None:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "UPDATE orders SET payment_status = ? WHERE payment_id = ?",
+            ("failed", payment_id),
         )
     if cur.rowcount == 0:
         raise ValueError("Order not found")

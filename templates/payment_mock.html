@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Тестовая оплата</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <div class="brand compact">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Тестовая оплата</h1>
+          <p class="subtitle">Mock-сценарий для проверки MVP</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="card payment-card">
+      <span class="eyebrow">Заказ #{{ order.id }}</span>
+      <h2>{{ order.address }}</h2>
+      <p>{{ order.description or "Без описания" }}</p>
+
+      <div class="payment-summary">
+        <div>
+          <span class="muted">Сумма</span>
+          <strong>{{ order.price }} ₸</strong>
+        </div>
+        <div>
+          <span class="muted">Статус</span>
+          <strong>{{ order.payment_status }}</strong>
+        </div>
+      </div>
+
+      <div class="actions">
+        <form method="post" action="/payments/mock/{{ payment_id }}/success">
+          <button class="btn" type="submit">Оплатить тестово</button>
+        </form>
+        <form method="post" action="/payments/mock/{{ payment_id }}/fail">
+          <button class="btn ghost" type="submit">Отменить оплату</button>
+        </form>
+      </div>
+
+      <p class="hint"><a href="/orders">Назад к заказам</a></p>
+    </section>
+  </main>
+</body>
+</html>
