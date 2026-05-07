@@ -30,6 +30,19 @@ class OrderEvent:
     created_at: str
 
 
+@dataclass
+class Contract:
+    id: int
+    order_id: int
+    customer_id: Optional[int]
+    assignee: str
+    price: int
+    status: str
+    created_at: str
+    completed_at: Optional[str]
+    address: str
+
+
 def _row_to_order(row) -> Order:
     return Order(
         id=row["id"],
@@ -69,6 +82,20 @@ def _row_to_event(row) -> OrderEvent:
         message=row["message"],
         actor=row["actor"],
         created_at=row["created_at"],
+    )
+
+
+def _row_to_contract(row) -> Contract:
+    return Contract(
+        id=row["id"],
+        order_id=row["order_id"],
+        customer_id=row["customer_id"],
+        assignee=row["assignee"],
+        price=row["price"] or 0,
+        status=row["status"] or "active",
+        created_at=row["created_at"],
+        completed_at=row["completed_at"],
+        address=row["address"] or "",
     )
 
 
@@ -278,3 +305,60 @@ def list_order_events(order_id: int) -> List[OrderEvent]:
             (order_id,),
         ).fetchall()
     return [_row_to_event(row) for row in rows]
+
+
+def create_contract_for_order(order: Order, assignee: str) -> None:
+    with get_conn() as conn:
+        existing = conn.execute(
+            sql("SELECT id FROM contracts WHERE order_id = ?"),
+            (order.id,),
+        ).fetchone()
+        if existing:
+            return
+        conn.execute(
+            sql("""
+            INSERT INTO contracts (order_id, customer_id, assignee, price, status)
+            VALUES (?, ?, ?, ?, ?)
+            """),
+            (order.id, order.customer_id, assignee, order.price, "active"),
+        )
+
+
+def set_contract_status_for_order(order_id: int, status: str) -> None:
+    completed_at = "CURRENT_TIMESTAMP" if status == "completed" else "NULL"
+    with get_conn() as conn:
+        conn.execute(
+            sql(f"""
+            UPDATE contracts
+            SET status = ?, completed_at = {completed_at}
+            WHERE order_id = ?
+            """),
+            (status, order_id),
+        )
+
+
+def _select_contracts(where: str = "", params: tuple = ()) -> List[Contract]:
+    query = """
+        SELECT c.id, c.order_id, c.customer_id, c.assignee, c.price, c.status,
+               c.created_at, c.completed_at, o.address
+        FROM contracts c
+        JOIN orders o ON o.id = c.order_id
+    """
+    if where:
+        query += f" WHERE {where}"
+    query += " ORDER BY c.id DESC"
+    with get_conn() as conn:
+        rows = conn.execute(sql(query), params).fetchall()
+    return [_row_to_contract(row) for row in rows]
+
+
+def list_contracts() -> List[Contract]:
+    return _select_contracts()
+
+
+def list_contracts_for_customer(customer_id: int) -> List[Contract]:
+    return _select_contracts("c.customer_id = ?", (customer_id,))
+
+
+def list_contracts_for_worker(worker_name: str) -> List[Contract]:
+    return _select_contracts("c.assignee = ?", (worker_name,))

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Контракты</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <div class="brand compact">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Контракты</h1>
+          <p class="subtitle">{{ user_name }} · {{ user_role }}</p>
+        </div>
+      </div>
+      <div class="actions topbar-actions">
+        <a class="btn ghost" href="/orders">Заказы</a>
+        <a class="btn ghost" href="/dashboard">Дашборд</a>
+        <form method="post" action="/logout">
+          <button class="btn ghost" type="submit">Выйти</button>
+        </form>
+      </div>
+    </header>
+
+    <section class="card dashboard-hero">
+      <span class="eyebrow">Сделки</span>
+      <h2>Контракты между заказчиком и исполнителем</h2>
+      <p>Контракт создается автоматически, когда исполнитель берет заказ в работу.</p>
+    </section>
+
+    {% if contracts %}
+    <div class="card table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Заказ</th>
+            <th>Адрес</th>
+            <th>Исполнитель</th>
+            <th>Сумма</th>
+            <th>Статус</th>
+            <th>Создан</th>
+            <th>Завершен</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for contract in contracts %}
+          <tr>
+            <td>{{ contract.id }}</td>
+            <td>#{{ contract.order_id }}</td>
+            <td>{{ contract.address }}</td>
+            <td>{{ contract.assignee }}</td>
+            <td>{{ contract.price }} ₸</td>
+            <td><span class="contract-badge contract-{{ contract.status }}">{{ contract.status }}</span></td>
+            <td>{{ contract.created_at }}</td>
+            <td>{{ contract.completed_at or "—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <section class="card">
+      <p>Контрактов пока нет. Возьмите заказ в работу, чтобы создать первый контракт.</p>
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>

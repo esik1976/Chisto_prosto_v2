@@ -352,7 +352,8 @@ table th {
 
 .badge,
 .status-badge,
-.payment-badge {
+.payment-badge,
+.contract-badge {
   display: inline-block;
   padding: 5px 10px;
   border-radius: 999px;
@@ -380,6 +381,21 @@ table th {
 .payment-empty {
   background: rgba(98, 125, 152, 0.12);
   color: var(--muted);
+}
+
+.contract-active {
+  background: rgba(15, 139, 141, 0.1);
+  color: var(--primary-dark);
+}
+
+.contract-completed {
+  background: rgba(46, 125, 50, 0.12);
+  color: #1b5e20;
+}
+
+.contract-cancelled {
+  background: rgba(176, 27, 50, 0.1);
+  color: #8a1025;
 }
 
 .status-new {
@@ -633,6 +649,11 @@ table th {
 .event-payment {
   background: rgba(46, 125, 50, 0.12);
   color: #1b5e20;
+}
+
+.event-contract {
+  background: rgba(15, 139, 141, 0.1);
+  color: var(--primary-dark);
 }
 
 .hint {

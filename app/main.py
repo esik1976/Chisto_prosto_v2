@@ -28,11 +28,16 @@ from .storage import (
     list_orders,
     list_orders_for_customer,
     list_orders_for_worker,
+    list_contracts,
+    list_contracts_for_customer,
+    list_contracts_for_worker,
     get_order,
     get_order_by_payment_id,
     list_order_events,
     create_order,
     add_order_event,
+    create_contract_for_order,
+    set_contract_status_for_order,
     take_order,
     complete_order,
     set_status,
@@ -86,6 +91,20 @@ def _orders_for_user(request: Request, status_filter: str = "all"):
     if status_filter == "all":
         return orders
     return [order for order in orders if order.status == status_filter]
+
+
+def _contracts_for_user(request: Request):
+    role = get_user_role(request)
+    user_id = get_user_id(request)
+    user_name = get_user_name(request)
+
+    if role == "admin":
+        return list_contracts()
+    if role == "customer" and user_id is not None:
+        return list_contracts_for_customer(user_id)
+    if role == "worker" and user_name:
+        return list_contracts_for_worker(user_name)
+    return []
 
 
 def _ensure_can_pay(request: Request, order) -> None:
@@ -287,6 +306,23 @@ def dashboard(request: Request):
     )
 
 
+@app.get("/contracts", response_class=HTMLResponse)
+def contracts_list(request: Request):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    return templates.TemplateResponse(
+        request,
+        "contracts.html",
+        {
+            "request": request,
+            "contracts": _contracts_for_user(request),
+            "user_name": get_user_name(request),
+            "user_role": get_user_role(request),
+        },
+    )
+
+
 @app.get("/orders", response_class=HTMLResponse)
 def orders_list(request: Request, status: str = "all"):
     redirect = _require_user(request)
@@ -360,12 +396,15 @@ def orders_take(request: Request, order_id: int, assignee: str = Form("")):
         raise HTTPException(status_code=400, detail="Assignee is required")
     try:
         take_order(order_id, assignee_name)
+        order = get_order(order_id)
+        create_contract_for_order(order, assignee_name)
         add_order_event(
             order_id,
             "assignee",
             f"Заказ взят в работу исполнителем: {assignee_name}",
             _actor(request),
         )
+        add_order_event(order_id, "contract", "Контракт создан", _actor(request))
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
     return RedirectResponse(url="/orders", status_code=303)
@@ -379,7 +418,9 @@ def orders_complete(request: Request, order_id: int):
     _require_role(request, {"worker", "admin"})
     try:
         complete_order(order_id)
+        set_contract_status_for_order(order_id, "completed")
         add_order_event(order_id, "status", "Статус изменен на done", _actor(request))
+        add_order_event(order_id, "contract", "Контракт завершен", _actor(request))
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
     return RedirectResponse(url="/orders", status_code=303)
@@ -393,6 +434,10 @@ def orders_status(request: Request, order_id: int, status: str = Form(...)):
     _require_role(request, {"admin"})
     try:
         set_status(order_id, status)
+        if status == "done":
+            set_contract_status_for_order(order_id, "completed")
+        elif status == "cancelled":
+            set_contract_status_for_order(order_id, "cancelled")
         add_order_event(order_id, "status", f"Статус изменен на {status}", _actor(request))
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
