@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from urllib.request import Request as UrlRequest, urlopen
 import json
 import logging
+import time
 
 from .config import APP_CONTACT_EMAIL
 from .db import init_db
@@ -48,6 +49,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger(__name__)
+reverse_geocode_cache = {}
+last_reverse_geocode_request_at = 0.0
 
 
 @app.on_event("startup")
@@ -159,6 +162,18 @@ def _dashboard_data(orders):
 
 @app.get("/api/reverse-geocode")
 def reverse_geocode(lat: float, lon: float):
+    global last_reverse_geocode_request_at
+
+    cache_key = (round(lat, 4), round(lon, 4))
+    cached = reverse_geocode_cache.get(cache_key)
+    if cached:
+        return {"address": cached, "error": "", "cached": True}
+
+    now = time.time()
+    if now - last_reverse_geocode_request_at < 1.2:
+        return {"address": "", "error": "local_rate_limit"}
+    last_reverse_geocode_request_at = now
+
     params = {
         "format": "jsonv2",
         "lat": lat,
@@ -185,7 +200,10 @@ def reverse_geocode(lat: float, lon: float):
     except (URLError, TimeoutError, json.JSONDecodeError) as exc:
         logger.warning("Reverse geocode failed for lat=%s lon=%s: %s", lat, lon, exc)
         return {"address": "", "error": "request_failed"}
-    return {"address": payload.get("display_name", ""), "error": ""}
+    address = payload.get("display_name", "")
+    if address:
+        reverse_geocode_cache[cache_key] = address
+    return {"address": address, "error": "", "cached": False}
 
 
 @app.get("/login", response_class=HTMLResponse)

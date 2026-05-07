@@ -75,11 +75,16 @@
     let geocodeTimer = null;
     let lastLookupKey = "";
     let rateLimitedUntil = 0;
+    let localRateLimitedUntil = 0;
 
     async function loadAddress(lat, lng) {
       const now = Date.now();
       if (rateLimitedUntil > now) {
         addressStatus.textContent = "Сервис адресов временно перегружен. Введите адрес вручную.";
+        return;
+      }
+      if (localRateLimitedUntil > now) {
+        addressStatus.textContent = "Подождите пару секунд, адрес загружается не чаще одного раза.";
         return;
       }
 
@@ -104,6 +109,9 @@
         } else if (data && data.error === "http_429") {
           rateLimitedUntil = Date.now() + 60000;
           addressStatus.textContent = "Сервис адресов временно перегружен. Введите адрес вручную.";
+        } else if (data && data.error === "local_rate_limit") {
+          localRateLimitedUntil = Date.now() + 2500;
+          addressStatus.textContent = "Подождите пару секунд и выберите точку еще раз.";
         } else if (data && data.error) {
           addressStatus.textContent = "Адрес не найден автоматически. Введите его вручную.";
         } else {
@@ -120,7 +128,7 @@
       }
       geocodeTimer = setTimeout(function () {
         loadAddress(lat, lng);
-      }, 900);
+      }, 1600);
     }
 
     if (typeof window.L === "undefined") {
