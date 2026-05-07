@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Дашборд</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <div class="brand compact">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Дашборд</h1>
+          <p class="subtitle">{{ user_name }} · {{ user_role }}</p>
+        </div>
+      </div>
+      <div class="actions topbar-actions">
+        <a class="btn ghost" href="/orders">Заказы</a>
+        <form method="post" action="/logout">
+          <button class="btn ghost" type="submit">Выйти</button>
+        </form>
+      </div>
+    </header>
+
+    <section class="dashboard-hero card">
+      <span class="eyebrow">Аналитика MVP</span>
+      <h2>Сводка по заказам</h2>
+      <p>Базовые показатели для проверки идеи: спрос, выполнение, оплата и наличие точек на карте.</p>
+    </section>
+
+    <section class="metric-grid">
+      <article class="metric-card card">
+        <span>Всего заказов</span>
+        <strong>{{ stats.total }}</strong>
+      </article>
+      <article class="metric-card card">
+        <span>Сумма заказов</span>
+        <strong>{{ stats.total_amount }} ₸</strong>
+      </article>
+      <article class="metric-card card">
+        <span>Оплачено</span>
+        <strong>{{ stats.paid_amount }} ₸</strong>
+      </article>
+      <article class="metric-card card">
+        <span>С точкой на карте</span>
+        <strong>{{ stats.with_location }}</strong>
+      </article>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="card">
+        <h2>Статусы заказов</h2>
+        <div class="stat-list">
+          {% for item in stats.status_stats %}
+          <div class="stat-row">
+            <div class="stat-row-head">
+              <span class="status-badge status-{{ item.status }}">{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill status-fill-{{ item.status }}" style="width: {{ item.percent }}%"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Оплата</h2>
+        <div class="payment-analytics">
+          <div>
+            <span class="payment-badge payment-paid">оплачено</span>
+            <strong>{{ stats.paid_count }}</strong>
+          </div>
+          <div>
+            <span class="payment-badge payment-empty">не оплачено</span>
+            <strong>{{ stats.unpaid_count }}</strong>
+          </div>
+        </div>
+        <p class="hint">Неоплаченная сумма: <strong>{{ stats.unpaid_amount }} ₸</strong></p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

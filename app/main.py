@@ -93,6 +93,53 @@ def _ensure_can_pay(request: Request, order) -> None:
     raise HTTPException(status_code=403, detail="Forbidden")
 
 
+def _dashboard_data(orders):
+    total = len(orders)
+    status_labels = {
+        "new": "Новые",
+        "in_progress": "В работе",
+        "done": "Готово",
+        "cancelled": "Отменены",
+    }
+    status_counts = {status: 0 for status in status_labels}
+    paid_count = 0
+    unpaid_count = 0
+    total_amount = 0
+    paid_amount = 0
+    with_location = 0
+
+    for order in orders:
+        if order.status in status_counts:
+            status_counts[order.status] += 1
+        total_amount += order.price
+        if order.paid:
+            paid_count += 1
+            paid_amount += order.price
+        else:
+            unpaid_count += 1
+        if order.latitude is not None and order.longitude is not None:
+            with_location += 1
+
+    status_stats = []
+    for status, label in status_labels.items():
+        count = status_counts[status]
+        percent = round((count / total) * 100) if total else 0
+        status_stats.append(
+            {"status": status, "label": label, "count": count, "percent": percent}
+        )
+
+    return {
+        "total": total,
+        "total_amount": total_amount,
+        "paid_amount": paid_amount,
+        "unpaid_amount": total_amount - paid_amount,
+        "paid_count": paid_count,
+        "unpaid_count": unpaid_count,
+        "with_location": with_location,
+        "status_stats": status_stats,
+    }
+
+
 @app.get("/api/reverse-geocode")
 def reverse_geocode(lat: float, lon: float):
     params = {
@@ -184,6 +231,24 @@ def home(request: Request):
 @app.get("/camera", response_class=HTMLResponse)
 def camera(request: Request):
     return templates.TemplateResponse(request, "camera.html", {"request": request})
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    orders = _orders_for_user(request, "all")
+    return templates.TemplateResponse(
+        request,
+        "dashboard.html",
+        {
+            "request": request,
+            "user_name": get_user_name(request),
+            "user_role": get_user_role(request),
+            "stats": _dashboard_data(orders),
+        },
+    )
 
 
 @app.get("/orders", response_class=HTMLResponse)

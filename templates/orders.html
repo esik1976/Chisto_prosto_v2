@@ -27,6 +27,11 @@
     {% if user_role in ["customer", "admin"] %}
     <div class="card actions">
       <a class="btn" href="/orders/new">Создать заказ</a>
+      <a class="btn ghost" href="/dashboard">Дашборд</a>
+    </div>
+    {% else %}
+    <div class="card actions">
+      <a class="btn ghost" href="/dashboard">Дашборд</a>
     </div>
     {% endif %}
 

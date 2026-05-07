@@ -297,6 +297,11 @@ button {
   gap: 16px;
 }
 
+.topbar-actions {
+  margin-top: 0;
+  align-items: center;
+}
+
 .table-card {
   overflow-x: auto;
 }
@@ -442,6 +447,110 @@ table th {
   font-size: 1.2rem;
 }
 
+.dashboard-hero {
+  margin-bottom: 18px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.86)),
+    radial-gradient(circle at top right, rgba(122, 211, 194, 0.24), transparent 42%);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.metric-card {
+  display: grid;
+  gap: 8px;
+  padding: 22px;
+}
+
+.metric-card span,
+.stat-row-head,
+.payment-analytics span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.metric-card strong {
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  letter-spacing: -0.04em;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 18px;
+}
+
+.stat-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.stat-row {
+  display: grid;
+  gap: 8px;
+}
+
+.stat-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progress-track {
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(98, 125, 152, 0.14);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.status-fill-new {
+  background: #2f80ed;
+}
+
+.status-fill-in_progress {
+  background: #f57c00;
+}
+
+.status-fill-done {
+  background: #2e7d32;
+}
+
+.status-fill-cancelled {
+  background: #b01b32;
+}
+
+.payment-analytics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.payment-analytics > div {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.payment-analytics strong {
+  font-size: 2rem;
+}
+
 .hint {
   margin-top: 18px;
 }
@@ -468,6 +577,11 @@ table th {
   .map-header {
     flex-direction: column;
   }
+
+  .metric-grid,
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -479,6 +593,13 @@ table th {
   .topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .topbar-actions,
+  .metric-grid,
+  .dashboard-grid,
+  .payment-analytics {
+    grid-template-columns: 1fr;
   }
 
   .logo {
