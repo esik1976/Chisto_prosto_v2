@@ -233,13 +233,16 @@ def orders_create(
 
 
 @app.post("/orders/{order_id}/take")
-def orders_take(request: Request, order_id: int, assignee: str = Form(...)):
+def orders_take(request: Request, order_id: int, assignee: str = Form("")):
     redirect = _require_user(request)
     if redirect:
         return redirect
     _require_role(request, {"worker", "admin"})
+    assignee_name = assignee.strip() or get_user_name(request)
+    if not assignee_name:
+        raise HTTPException(status_code=400, detail="Assignee is required")
     try:
-        take_order(order_id, assignee)
+        take_order(order_id, assignee_name)
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
     return RedirectResponse(url="/orders", status_code=303)

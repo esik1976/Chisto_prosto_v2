@@ -85,7 +85,9 @@
               <div class="order-actions">
                 {% if user_role in ["worker", "admin"] and order.status == "new" %}
                 <form method="post" action="/orders/{{ order.id }}/take" class="inline-form">
+                  {% if user_role == "admin" %}
                   <input type="text" name="assignee" placeholder="Имя исполнителя" required />
+                  {% endif %}
                   <button class="btn" type="submit">Взять</button>
                 </form>
                 {% elif user_role in ["worker", "admin"] and order.status == "in_progress" %}
