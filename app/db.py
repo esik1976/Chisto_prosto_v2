@@ -51,3 +51,15 @@ def init_db() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS order_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id INTEGER NOT NULL,
+                event_type TEXT NOT NULL,
+                message TEXT NOT NULL,
+                actor TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )

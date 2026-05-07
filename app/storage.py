@@ -20,6 +20,16 @@ class Order:
     payment_id: Optional[str] = None
 
 
+@dataclass
+class OrderEvent:
+    id: int
+    order_id: int
+    event_type: str
+    message: str
+    actor: Optional[str]
+    created_at: str
+
+
 def _row_to_order(row) -> Order:
     return Order(
         id=row["id"],
@@ -49,6 +59,17 @@ def _select_orders(where: str = "", params: tuple = ()) -> List[Order]:
     with get_conn() as conn:
         rows = conn.execute(query, params).fetchall()
     return [_row_to_order(row) for row in rows]
+
+
+def _row_to_event(row) -> OrderEvent:
+    return OrderEvent(
+        id=row["id"],
+        order_id=row["order_id"],
+        event_type=row["event_type"],
+        message=row["message"],
+        actor=row["actor"],
+        created_at=row["created_at"],
+    )
 
 
 def list_orders() -> List[Order]:
@@ -201,3 +222,33 @@ def mark_payment_failed(payment_id: str) -> None:
         )
     if cur.rowcount == 0:
         raise ValueError("Order not found")
+
+
+def add_order_event(
+    order_id: int,
+    event_type: str,
+    message: str,
+    actor: Optional[str] = None,
+) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO order_events (order_id, event_type, message, actor)
+            VALUES (?, ?, ?, ?)
+            """,
+            (order_id, event_type, message, actor),
+        )
+
+
+def list_order_events(order_id: int) -> List[OrderEvent]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, order_id, event_type, message, actor, created_at
+            FROM order_events
+            WHERE order_id = ?
+            ORDER BY id DESC
+            """,
+            (order_id,),
+        ).fetchall()
+    return [_row_to_event(row) for row in rows]

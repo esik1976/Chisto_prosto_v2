@@ -30,7 +30,9 @@ from .storage import (
     list_orders_for_worker,
     get_order,
     get_order_by_payment_id,
+    list_order_events,
     create_order,
+    add_order_event,
     take_order,
     complete_order,
     set_status,
@@ -91,6 +93,21 @@ def _ensure_can_pay(request: Request, order) -> None:
     if role == "customer" and order.customer_id == get_user_id(request):
         return
     raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def _ensure_can_view_order(request: Request, order) -> None:
+    role = get_user_role(request)
+    if role == "admin":
+        return
+    if role == "customer" and order.customer_id == get_user_id(request):
+        return
+    if role == "worker" and (order.status == "new" or order.assignee == get_user_name(request)):
+        return
+    raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def _actor(request: Request) -> str:
+    return get_user_name(request) or "system"
 
 
 def _dashboard_data(orders):
@@ -309,6 +326,7 @@ def orders_create(
         send_order_created_email(order)
     except Exception as exc:
         logger.exception("Failed to send order created email: %s", exc)
+    add_order_event(order.id, "created", "Заказ создан", _actor(request))
     return RedirectResponse(url="/orders", status_code=303)
 
 
@@ -323,6 +341,12 @@ def orders_take(request: Request, order_id: int, assignee: str = Form("")):
         raise HTTPException(status_code=400, detail="Assignee is required")
     try:
         take_order(order_id, assignee_name)
+        add_order_event(
+            order_id,
+            "assignee",
+            f"Заказ взят в работу исполнителем: {assignee_name}",
+            _actor(request),
+        )
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
     return RedirectResponse(url="/orders", status_code=303)
@@ -336,6 +360,7 @@ def orders_complete(request: Request, order_id: int):
     _require_role(request, {"worker", "admin"})
     try:
         complete_order(order_id)
+        add_order_event(order_id, "status", "Статус изменен на done", _actor(request))
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
     return RedirectResponse(url="/orders", status_code=303)
@@ -349,6 +374,7 @@ def orders_status(request: Request, order_id: int, status: str = Form(...)):
     _require_role(request, {"admin"})
     try:
         set_status(order_id, status)
+        add_order_event(order_id, "status", f"Статус изменен на {status}", _actor(request))
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
     return RedirectResponse(url="/orders", status_code=303)
@@ -362,6 +388,7 @@ def orders_pay(request: Request, order_id: int):
     _require_role(request, {"admin"})
     try:
         mark_paid(order_id)
+        add_order_event(order_id, "payment", "Оплата отмечена вручную", _actor(request))
     except ValueError:
         raise HTTPException(status_code=404, detail="Order not found")
     return RedirectResponse(url="/orders", status_code=303)
@@ -382,6 +409,7 @@ def orders_pay_start(request: Request, order_id: int):
 
     payment = create_mock_payment(order)
     set_payment_pending(order.id, payment.payment_id)
+    add_order_event(order.id, "payment", "Запущена тестовая оплата", _actor(request))
     return RedirectResponse(url=payment.payment_url, status_code=303)
 
 
@@ -411,6 +439,7 @@ def payment_mock_success(request: Request, payment_id: str):
         order = get_order_by_payment_id(payment_id)
         _ensure_can_pay(request, order)
         mark_paid_by_payment_id(payment_id)
+        add_order_event(order.id, "payment", "Тестовая оплата выполнена", _actor(request))
     except ValueError:
         raise HTTPException(status_code=404, detail="Payment not found")
     return RedirectResponse(url="/orders", status_code=303)
@@ -425,6 +454,30 @@ def payment_mock_fail(request: Request, payment_id: str):
         order = get_order_by_payment_id(payment_id)
         _ensure_can_pay(request, order)
         mark_payment_failed(payment_id)
+        add_order_event(order.id, "payment", "Тестовая оплата отменена", _actor(request))
     except ValueError:
         raise HTTPException(status_code=404, detail="Payment not found")
     return RedirectResponse(url="/orders", status_code=303)
+
+
+@app.get("/orders/{order_id}/history", response_class=HTMLResponse)
+def order_history(request: Request, order_id: int):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    try:
+        order = get_order(order_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Order not found")
+    _ensure_can_view_order(request, order)
+    return templates.TemplateResponse(
+        request,
+        "order_history.html",
+        {
+            "request": request,
+            "order": order,
+            "events": list_order_events(order.id),
+            "user_name": get_user_name(request),
+            "user_role": get_user_role(request),
+        },
+    )
