@@ -13,6 +13,19 @@ uvicorn app.main:app --reload
 
 Откройте: http://127.0.0.1:8000
 
+## Хранилище данных
+
+Локально приложение использует SQLite: `data/app.db`.
+
+На Render используйте PostgreSQL:
+
+1. Создайте PostgreSQL database в Render.
+2. Скопируйте Internal Database URL.
+3. Добавьте переменную `DATABASE_URL` в Environment Variables веб-сервиса.
+4. Сделайте redeploy.
+
+Если `DATABASE_URL` не задан, приложение автоматически работает на SQLite.
+
 ## Email уведомления через Resend
 
 1. Создайте аккаунт в Resend
@@ -27,6 +40,7 @@ RESEND_API_KEY=re_xxxxx
 EMAIL_FROM=onboarding@resend.dev
 NOTIFY_EMAIL_TO=your_email@gmail.com
 APP_CONTACT_EMAIL=your_email@gmail.com
+DATABASE_URL=
 ```
 
 Для Render добавьте те же переменные в `Environment` и выполните redeploy.

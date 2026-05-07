@@ -2,7 +2,7 @@
 import secrets
 from typing import Optional
 
-from .db import get_conn
+from .db import get_conn, is_postgres, sql
 
 ROLES = {"customer", "worker", "admin"}
 
@@ -18,6 +18,16 @@ def create_user(username: str, role: str, password: str) -> int:
     salt = secrets.token_hex(16)
     password_hash = _hash_password(password, salt)
     with get_conn() as conn:
+        if is_postgres():
+            cur = conn.execute(
+                """
+                INSERT INTO users (username, role, password_hash, salt)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id
+                """,
+                (username, role, password_hash, salt),
+            )
+            return int(cur.fetchone()["id"])
         cur = conn.execute(
             "INSERT INTO users (username, role, password_hash, salt) VALUES (?, ?, ?, ?)",
             (username, role, password_hash, salt),
@@ -28,7 +38,7 @@ def create_user(username: str, role: str, password: str) -> int:
 def authenticate(username: str, password: str) -> Optional[dict]:
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT id, username, role, password_hash, salt FROM users WHERE username = ?",
+            sql("SELECT id, username, role, password_hash, salt FROM users WHERE username = ?"),
             (username,),
         ).fetchone()
     if not row:

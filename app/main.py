@@ -3,7 +3,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
-from sqlite3 import IntegrityError
 from urllib.error import URLError, HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request as UrlRequest, urlopen
@@ -12,7 +11,7 @@ import logging
 import time
 
 from .config import APP_CONTACT_EMAIL
-from .db import init_db
+from .db import init_db, is_unique_error
 from .auth import (
     ROLES,
     create_user,
@@ -241,7 +240,9 @@ def register(
         raise HTTPException(status_code=400, detail="Invalid role")
     try:
         user_id = create_user(username, role, password)
-    except IntegrityError:
+    except Exception as exc:
+        if not is_unique_error(exc):
+            raise
         return templates.TemplateResponse(
             request,
             "register.html",

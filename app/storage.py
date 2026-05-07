@@ -1,7 +1,7 @@
 ﻿from dataclasses import dataclass
 from typing import List, Optional
 
-from .db import get_conn
+from .db import get_conn, is_postgres, sql
 
 
 @dataclass
@@ -57,7 +57,7 @@ def _select_orders(where: str = "", params: tuple = ()) -> List[Order]:
         query += f" WHERE {where}"
     query += " ORDER BY id DESC"
     with get_conn() as conn:
-        rows = conn.execute(query, params).fetchall()
+        rows = conn.execute(sql(query), params).fetchall()
     return [_row_to_order(row) for row in rows]
 
 
@@ -90,12 +90,12 @@ def list_orders_for_worker(worker_name: str) -> List[Order]:
 def get_order(order_id: int) -> Order:
     with get_conn() as conn:
         row = conn.execute(
-            """
+            sql("""
             SELECT id, address, description, price, status, assignee, paid, latitude, longitude, customer_id,
                    payment_status, payment_id
             FROM orders
             WHERE id = ?
-            """,
+            """),
             (order_id,),
         ).fetchone()
     if not row:
@@ -106,12 +106,12 @@ def get_order(order_id: int) -> Order:
 def get_order_by_payment_id(payment_id: str) -> Order:
     with get_conn() as conn:
         row = conn.execute(
-            """
+            sql("""
             SELECT id, address, description, price, status, assignee, paid, latitude, longitude, customer_id,
                    payment_status, payment_id
             FROM orders
             WHERE payment_id = ?
-            """,
+            """),
             (payment_id,),
         ).fetchone()
     if not row:
@@ -128,8 +128,34 @@ def create_order(
     customer_id: Optional[int] = None,
 ) -> Order:
     with get_conn() as conn:
-        cur = conn.execute(
-            """
+        if is_postgres():
+            cur = conn.execute(
+                """
+                INSERT INTO orders (
+                    address, description, price, status, assignee, paid, latitude, longitude, customer_id,
+                    payment_status, payment_id
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    address,
+                    description,
+                    price,
+                    "new",
+                    None,
+                    0,
+                    latitude,
+                    longitude,
+                    customer_id,
+                    "not_started",
+                    None,
+                ),
+            )
+            order_id = cur.fetchone()["id"]
+        else:
+            cur = conn.execute(
+                """
             INSERT INTO orders (
                 address, description, price, status, assignee, paid, latitude, longitude, customer_id,
                 payment_status, payment_id
@@ -149,15 +175,15 @@ def create_order(
                 "not_started",
                 None,
             ),
-        )
-        order_id = cur.lastrowid
+            )
+            order_id = cur.lastrowid
     return get_order(order_id)
 
 
 def take_order(order_id: int, assignee: str) -> None:
     with get_conn() as conn:
         cur = conn.execute(
-            "UPDATE orders SET assignee = ?, status = ? WHERE id = ?",
+            sql("UPDATE orders SET assignee = ?, status = ? WHERE id = ?"),
             (assignee, "in_progress", order_id),
         )
     if cur.rowcount == 0:
@@ -167,7 +193,7 @@ def take_order(order_id: int, assignee: str) -> None:
 def complete_order(order_id: int) -> None:
     with get_conn() as conn:
         cur = conn.execute(
-            "UPDATE orders SET status = ? WHERE id = ?",
+            sql("UPDATE orders SET status = ? WHERE id = ?"),
             ("done", order_id),
         )
     if cur.rowcount == 0:
@@ -177,7 +203,7 @@ def complete_order(order_id: int) -> None:
 def set_status(order_id: int, status: str) -> None:
     with get_conn() as conn:
         cur = conn.execute(
-            "UPDATE orders SET status = ? WHERE id = ?",
+            sql("UPDATE orders SET status = ? WHERE id = ?"),
             (status, order_id),
         )
     if cur.rowcount == 0:
@@ -187,7 +213,7 @@ def set_status(order_id: int, status: str) -> None:
 def mark_paid(order_id: int) -> None:
     with get_conn() as conn:
         cur = conn.execute(
-            "UPDATE orders SET paid = ?, payment_status = ? WHERE id = ?",
+            sql("UPDATE orders SET paid = ?, payment_status = ? WHERE id = ?"),
             (1, "paid", order_id),
         )
     if cur.rowcount == 0:
@@ -197,7 +223,7 @@ def mark_paid(order_id: int) -> None:
 def set_payment_pending(order_id: int, payment_id: str) -> None:
     with get_conn() as conn:
         cur = conn.execute(
-            "UPDATE orders SET payment_status = ?, payment_id = ? WHERE id = ?",
+            sql("UPDATE orders SET payment_status = ?, payment_id = ? WHERE id = ?"),
             ("pending", payment_id, order_id),
         )
     if cur.rowcount == 0:
@@ -207,7 +233,7 @@ def set_payment_pending(order_id: int, payment_id: str) -> None:
 def mark_paid_by_payment_id(payment_id: str) -> None:
     with get_conn() as conn:
         cur = conn.execute(
-            "UPDATE orders SET paid = ?, payment_status = ? WHERE payment_id = ?",
+            sql("UPDATE orders SET paid = ?, payment_status = ? WHERE payment_id = ?"),
             (1, "paid", payment_id),
         )
     if cur.rowcount == 0:
@@ -217,7 +243,7 @@ def mark_paid_by_payment_id(payment_id: str) -> None:
 def mark_payment_failed(payment_id: str) -> None:
     with get_conn() as conn:
         cur = conn.execute(
-            "UPDATE orders SET payment_status = ? WHERE payment_id = ?",
+            sql("UPDATE orders SET payment_status = ? WHERE payment_id = ?"),
             ("failed", payment_id),
         )
     if cur.rowcount == 0:
@@ -232,10 +258,10 @@ def add_order_event(
 ) -> None:
     with get_conn() as conn:
         conn.execute(
-            """
+            sql("""
             INSERT INTO order_events (order_id, event_type, message, actor)
             VALUES (?, ?, ?, ?)
-            """,
+            """),
             (order_id, event_type, message, actor),
         )
 
@@ -243,12 +269,12 @@ def add_order_event(
 def list_order_events(order_id: int) -> List[OrderEvent]:
     with get_conn() as conn:
         rows = conn.execute(
-            """
+            sql("""
             SELECT id, order_id, event_type, message, actor, created_at
             FROM order_events
             WHERE order_id = ?
             ORDER BY id DESC
-            """,
+            """),
             (order_id,),
         ).fetchall()
     return [_row_to_event(row) for row in rows]
