@@ -2,6 +2,7 @@
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 from urllib.error import URLError, HTTPError
 from urllib.parse import urlencode
@@ -63,6 +64,14 @@ reverse_geocode_cache = {}
 last_reverse_geocode_request_at = 0.0
 
 
+class ApiOrderCreate(BaseModel):
+    address: str
+    description: str = ""
+    price: int = 0
+    latitude: float | None = None
+    longitude: float | None = None
+
+
 @app.on_event("startup")
 def startup() -> None:
     init_db()
@@ -78,6 +87,11 @@ def _require_role(request: Request, allowed: set[str]):
     role = get_user_role(request)
     if role not in allowed:
         raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def _require_api_user(request: Request) -> None:
+    if not get_user_role(request):
+        raise HTTPException(status_code=401, detail="Authentication required")
 
 
 def _orders_for_user(request: Request, status_filter: str = "all"):
@@ -158,6 +172,70 @@ def _ensure_can_view_order(request: Request, order) -> None:
 
 def _actor(request: Request) -> str:
     return get_user_name(request) or "system"
+
+
+def _map_url(order) -> str | None:
+    if order.latitude is None or order.longitude is None:
+        return None
+    return (
+        "https://www.openstreetmap.org/"
+        f"?mlat={order.latitude}&mlon={order.longitude}#map=16/{order.latitude}/{order.longitude}"
+    )
+
+
+def _order_to_dict(order) -> dict:
+    return {
+        "id": order.id,
+        "address": order.address,
+        "description": order.description,
+        "price": order.price,
+        "status": order.status,
+        "assignee": order.assignee,
+        "paid": order.paid,
+        "payment_status": order.payment_status,
+        "latitude": order.latitude,
+        "longitude": order.longitude,
+        "customer_id": order.customer_id,
+        "map_url": _map_url(order),
+    }
+
+
+def _event_to_dict(event) -> dict:
+    return {
+        "id": event.id,
+        "order_id": event.order_id,
+        "event_type": event.event_type,
+        "message": event.message,
+        "actor": event.actor,
+        "created_at": event.created_at,
+    }
+
+
+def _contract_to_dict(contract) -> dict:
+    return {
+        "id": contract.id,
+        "order_id": contract.order_id,
+        "customer_id": contract.customer_id,
+        "assignee": contract.assignee,
+        "price": contract.price,
+        "status": contract.status,
+        "created_at": contract.created_at,
+        "completed_at": contract.completed_at,
+        "address": contract.address,
+    }
+
+
+def _review_to_dict(review) -> dict:
+    return {
+        "id": review.id,
+        "order_id": review.order_id,
+        "customer_id": review.customer_id,
+        "assignee": review.assignee,
+        "rating": review.rating,
+        "comment": review.comment,
+        "created_at": review.created_at,
+        "address": review.address,
+    }
 
 
 def _dashboard_data(orders):
@@ -251,6 +329,85 @@ def reverse_geocode(lat: float, lon: float):
     if address:
         reverse_geocode_cache[cache_key] = address
     return {"address": address, "error": "", "cached": False}
+
+
+@app.get("/api/me")
+def api_me(request: Request):
+    _require_api_user(request)
+    return {
+        "id": get_user_id(request),
+        "username": get_user_name(request),
+        "role": get_user_role(request),
+    }
+
+
+@app.get("/api/orders")
+def api_orders(request: Request, status: str = "all"):
+    _require_api_user(request)
+    allowed_statuses = {"all", "new", "in_progress", "done", "cancelled"}
+    status_filter = status if status in allowed_statuses else "all"
+    orders = _orders_for_user(request, status_filter)
+    return {
+        "items": [_order_to_dict(order) for order in orders],
+        "total": len(orders),
+        "status_filter": status_filter,
+    }
+
+
+@app.post("/api/orders", status_code=201)
+def api_orders_create(request: Request, payload: ApiOrderCreate):
+    _require_api_user(request)
+    _require_role(request, {"customer", "admin"})
+    order = create_order(
+        payload.address,
+        payload.description,
+        payload.price,
+        payload.latitude,
+        payload.longitude,
+        get_user_id(request),
+    )
+    try:
+        send_order_created_email(order)
+    except Exception as exc:
+        logger.exception("Failed to send order created email: %s", exc)
+    add_order_event(order.id, "created", "Заказ создан через API", _actor(request))
+    return _order_to_dict(order)
+
+
+@app.get("/api/orders/{order_id}")
+def api_order_detail(request: Request, order_id: int):
+    _require_api_user(request)
+    try:
+        order = get_order(order_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Order not found")
+    _ensure_can_view_order(request, order)
+    review = get_review_by_order_id(order.id)
+    return {
+        "order": _order_to_dict(order),
+        "events": [_event_to_dict(event) for event in list_order_events(order.id)],
+        "review": _review_to_dict(review) if review else None,
+    }
+
+
+@app.get("/api/dashboard")
+def api_dashboard(request: Request):
+    _require_api_user(request)
+    return _dashboard_data(_orders_for_user(request, "all"))
+
+
+@app.get("/api/contracts")
+def api_contracts(request: Request):
+    _require_api_user(request)
+    contracts = _contracts_for_user(request)
+    return {"items": [_contract_to_dict(contract) for contract in contracts], "total": len(contracts)}
+
+
+@app.get("/api/reviews")
+def api_reviews(request: Request):
+    _require_api_user(request)
+    reviews = _reviews_for_user(request)
+    return {"items": [_review_to_dict(review) for review in reviews], "total": len(reviews)}
 
 
 @app.get("/login", response_class=HTMLResponse)
