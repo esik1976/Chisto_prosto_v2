@@ -656,6 +656,35 @@ table th {
   color: var(--primary-dark);
 }
 
+.event-review {
+  background: rgba(245, 124, 0, 0.12);
+  color: #a14d00;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.review-card {
+  display: grid;
+  gap: 8px;
+}
+
+.review-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.rating {
+  color: #f57c00;
+  font-size: 1.1rem;
+  letter-spacing: 0.03em;
+}
+
 .hint {
   margin-top: 18px;
 }
@@ -684,7 +713,8 @@ table th {
   }
 
   .metric-grid,
-  .dashboard-grid {
+  .dashboard-grid,
+  .review-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -703,7 +733,8 @@ table th {
   .topbar-actions,
   .metric-grid,
   .dashboard-grid,
-  .payment-analytics {
+  .payment-analytics,
+  .review-grid {
     grid-template-columns: 1fr;
   }
 

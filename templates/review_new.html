@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Отзыв</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <div class="brand compact">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Отзыв по заказу #{{ order.id }}</h1>
+          <p class="subtitle">{{ user_name }} · {{ user_role }}</p>
+        </div>
+      </div>
+      <div class="actions topbar-actions">
+        <a class="btn ghost" href="/orders">Заказы</a>
+        <a class="btn ghost" href="/reviews">Отзывы</a>
+      </div>
+    </header>
+
+    <section class="card order-summary">
+      <span class="eyebrow">Завершенный заказ</span>
+      <h2>{{ order.address }}</h2>
+      <p>{{ order.description or "Без описания" }}</p>
+      <div class="summary-row">
+        <span class="status-badge status-{{ order.status }}">{{ order.status }}</span>
+        <span class="coords">Исполнитель: {{ order.assignee }}</span>
+        <span class="coords">{{ order.price }} ₸</span>
+      </div>
+    </section>
+
+    <section class="card">
+      {% if review %}
+      <h2>Отзыв уже оставлен</h2>
+      <p>Оценка: <strong>{{ review.rating }}/5</strong></p>
+      <p>{{ review.comment or "Без комментария" }}</p>
+      {% else %}
+      <h2>Оцените исполнителя</h2>
+      <form method="post" action="/orders/{{ order.id }}/review">
+        <label>
+          Оценка
+          <select name="rating" required>
+            <option value="5">5 — отлично</option>
+            <option value="4">4 — хорошо</option>
+            <option value="3">3 — нормально</option>
+            <option value="2">2 — плохо</option>
+            <option value="1">1 — очень плохо</option>
+          </select>
+        </label>
+        <label>
+          Комментарий
+          <textarea name="comment" rows="4" placeholder="Коротко опишите качество выполнения"></textarea>
+        </label>
+        <button class="btn" type="submit">Сохранить отзыв</button>
+      </form>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

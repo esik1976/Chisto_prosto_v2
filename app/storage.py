@@ -43,6 +43,18 @@ class Contract:
     address: str
 
 
+@dataclass
+class Review:
+    id: int
+    order_id: int
+    customer_id: Optional[int]
+    assignee: str
+    rating: int
+    comment: str
+    created_at: str
+    address: str
+
+
 def _row_to_order(row) -> Order:
     return Order(
         id=row["id"],
@@ -95,6 +107,19 @@ def _row_to_contract(row) -> Contract:
         status=row["status"] or "active",
         created_at=row["created_at"],
         completed_at=row["completed_at"],
+        address=row["address"] or "",
+    )
+
+
+def _row_to_review(row) -> Review:
+    return Review(
+        id=row["id"],
+        order_id=row["order_id"],
+        customer_id=row["customer_id"],
+        assignee=row["assignee"],
+        rating=row["rating"] or 0,
+        comment=row["comment"] or "",
+        created_at=row["created_at"],
         address=row["address"] or "",
     )
 
@@ -362,3 +387,74 @@ def list_contracts_for_customer(customer_id: int) -> List[Contract]:
 
 def list_contracts_for_worker(worker_name: str) -> List[Contract]:
     return _select_contracts("c.assignee = ?", (worker_name,))
+
+
+def create_review(
+    order: Order,
+    rating: int,
+    comment: str,
+) -> None:
+    if not order.assignee:
+        raise ValueError("Order has no assignee")
+    with get_conn() as conn:
+        conn.execute(
+            sql("""
+            INSERT INTO reviews (order_id, customer_id, assignee, rating, comment)
+            VALUES (?, ?, ?, ?, ?)
+            """),
+            (order.id, order.customer_id, order.assignee, rating, comment),
+        )
+
+
+def get_review_by_order_id(order_id: int) -> Optional[Review]:
+    with get_conn() as conn:
+        row = conn.execute(
+            sql("""
+            SELECT r.id, r.order_id, r.customer_id, r.assignee, r.rating, r.comment,
+                   r.created_at, o.address
+            FROM reviews r
+            JOIN orders o ON o.id = r.order_id
+            WHERE r.order_id = ?
+            """),
+            (order_id,),
+        ).fetchone()
+    return _row_to_review(row) if row else None
+
+
+def _select_reviews(where: str = "", params: tuple = ()) -> List[Review]:
+    query = """
+        SELECT r.id, r.order_id, r.customer_id, r.assignee, r.rating, r.comment,
+               r.created_at, o.address
+        FROM reviews r
+        JOIN orders o ON o.id = r.order_id
+    """
+    if where:
+        query += f" WHERE {where}"
+    query += " ORDER BY r.id DESC"
+    with get_conn() as conn:
+        rows = conn.execute(sql(query), params).fetchall()
+    return [_row_to_review(row) for row in rows]
+
+
+def list_reviews() -> List[Review]:
+    return _select_reviews()
+
+
+def list_reviews_for_customer(customer_id: int) -> List[Review]:
+    return _select_reviews("r.customer_id = ?", (customer_id,))
+
+
+def list_reviews_for_worker(worker_name: str) -> List[Review]:
+    return _select_reviews("r.assignee = ?", (worker_name,))
+
+
+def list_reviewed_order_ids(order_ids: list[int]) -> set[int]:
+    if not order_ids:
+        return set()
+    placeholders = ", ".join(["?"] * len(order_ids))
+    with get_conn() as conn:
+        rows = conn.execute(
+            sql(f"SELECT order_id FROM reviews WHERE order_id IN ({placeholders})"),
+            tuple(order_ids),
+        ).fetchall()
+    return {row["order_id"] for row in rows}

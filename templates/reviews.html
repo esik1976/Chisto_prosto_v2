@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Отзывы</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <div class="brand compact">
+        <div class="logo">CP</div>
+        <div>
+          <h1>Отзывы</h1>
+          <p class="subtitle">{{ user_name }} · {{ user_role }}</p>
+        </div>
+      </div>
+      <div class="actions topbar-actions">
+        <a class="btn ghost" href="/orders">Заказы</a>
+        <a class="btn ghost" href="/dashboard">Дашборд</a>
+        <a class="btn ghost" href="/contracts">Контракты</a>
+        <form method="post" action="/logout">
+          <button class="btn ghost" type="submit">Выйти</button>
+        </form>
+      </div>
+    </header>
+
+    <section class="card dashboard-hero">
+      <span class="eyebrow">Качество работ</span>
+      <h2>Оценки исполнителей</h2>
+      <p>Отзывы помогают понимать качество выполнения заказов и повышают доверие к сервису.</p>
+    </section>
+
+    {% if reviews %}
+    <section class="review-grid">
+      {% for review in reviews %}
+      <article class="card review-card">
+        <div class="review-head">
+          <span class="rating">{{ "★" * review.rating }}{{ "☆" * (5 - review.rating) }}</span>
+          <span class="muted">Заказ #{{ review.order_id }}</span>
+        </div>
+        <h2>{{ review.assignee }}</h2>
+        <p>{{ review.address }}</p>
+        <p>{{ review.comment or "Без комментария" }}</p>
+        <span class="muted">{{ review.created_at }}</span>
+      </article>
+      {% endfor %}
+    </section>
+    {% else %}
+    <section class="card">
+      <p>Отзывов пока нет. После завершения заказа заказчик сможет оставить оценку.</p>
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>

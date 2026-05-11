@@ -31,10 +31,16 @@ from .storage import (
     list_contracts,
     list_contracts_for_customer,
     list_contracts_for_worker,
+    list_reviews,
+    list_reviews_for_customer,
+    list_reviews_for_worker,
+    list_reviewed_order_ids,
     get_order,
     get_order_by_payment_id,
+    get_review_by_order_id,
     list_order_events,
     create_order,
+    create_review,
     add_order_event,
     create_contract_for_order,
     set_contract_status_for_order,
@@ -107,6 +113,20 @@ def _contracts_for_user(request: Request):
     return []
 
 
+def _reviews_for_user(request: Request):
+    role = get_user_role(request)
+    user_id = get_user_id(request)
+    user_name = get_user_name(request)
+
+    if role == "admin":
+        return list_reviews()
+    if role == "customer" and user_id is not None:
+        return list_reviews_for_customer(user_id)
+    if role == "worker" and user_name:
+        return list_reviews_for_worker(user_name)
+    return []
+
+
 def _ensure_can_pay(request: Request, order) -> None:
     role = get_user_role(request)
     if role == "admin":
@@ -114,6 +134,15 @@ def _ensure_can_pay(request: Request, order) -> None:
     if role == "customer" and order.customer_id == get_user_id(request):
         return
     raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def _ensure_can_review(request: Request, order) -> None:
+    if get_user_role(request) != "customer" or order.customer_id != get_user_id(request):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if order.status != "done":
+        raise HTTPException(status_code=400, detail="Order is not completed")
+    if not order.assignee:
+        raise HTTPException(status_code=400, detail="Order has no assignee")
 
 
 def _ensure_can_view_order(request: Request, order) -> None:
@@ -323,6 +352,23 @@ def contracts_list(request: Request):
     )
 
 
+@app.get("/reviews", response_class=HTMLResponse)
+def reviews_list(request: Request):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    return templates.TemplateResponse(
+        request,
+        "reviews.html",
+        {
+            "request": request,
+            "reviews": _reviews_for_user(request),
+            "user_name": get_user_name(request),
+            "user_role": get_user_role(request),
+        },
+    )
+
+
 @app.get("/orders", response_class=HTMLResponse)
 def orders_list(request: Request, status: str = "all"):
     redirect = _require_user(request)
@@ -330,12 +376,14 @@ def orders_list(request: Request, status: str = "all"):
         return redirect
     allowed_statuses = {"all", "new", "in_progress", "done", "cancelled"}
     status_filter = status if status in allowed_statuses else "all"
+    orders = _orders_for_user(request, status_filter)
     return templates.TemplateResponse(
         request,
         "orders.html",
         {
             "request": request,
-            "orders": _orders_for_user(request, status_filter),
+            "orders": orders,
+            "reviewed_order_ids": list_reviewed_order_ids([order.id for order in orders]),
             "user_name": get_user_name(request),
             "user_role": get_user_role(request),
             "status_filter": status_filter,
@@ -522,6 +570,54 @@ def payment_mock_fail(request: Request, payment_id: str):
     except ValueError:
         raise HTTPException(status_code=404, detail="Payment not found")
     return RedirectResponse(url="/orders", status_code=303)
+
+
+@app.get("/orders/{order_id}/review", response_class=HTMLResponse)
+def review_new(request: Request, order_id: int):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    try:
+        order = get_order(order_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Order not found")
+    _ensure_can_review(request, order)
+    existing_review = get_review_by_order_id(order.id)
+    return templates.TemplateResponse(
+        request,
+        "review_new.html",
+        {
+            "request": request,
+            "order": order,
+            "review": existing_review,
+            "user_name": get_user_name(request),
+            "user_role": get_user_role(request),
+        },
+    )
+
+
+@app.post("/orders/{order_id}/review")
+def review_create(
+    request: Request,
+    order_id: int,
+    rating: int = Form(...),
+    comment: str = Form(""),
+):
+    redirect = _require_user(request)
+    if redirect:
+        return redirect
+    if rating < 1 or rating > 5:
+        raise HTTPException(status_code=400, detail="Invalid rating")
+    try:
+        order = get_order(order_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Order not found")
+    _ensure_can_review(request, order)
+    if get_review_by_order_id(order.id):
+        return RedirectResponse(url="/reviews", status_code=303)
+    create_review(order, rating, comment.strip())
+    add_order_event(order.id, "review", f"Оставлен отзыв с оценкой {rating}/5", _actor(request))
+    return RedirectResponse(url="/reviews", status_code=303)
 
 
 @app.get("/orders/{order_id}/history", response_class=HTMLResponse)

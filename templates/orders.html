@@ -29,11 +29,13 @@
       <a class="btn" href="/orders/new">Создать заказ</a>
       <a class="btn ghost" href="/dashboard">Дашборд</a>
       <a class="btn ghost" href="/contracts">Контракты</a>
+      <a class="btn ghost" href="/reviews">Отзывы</a>
     </div>
     {% else %}
     <div class="card actions">
       <a class="btn ghost" href="/dashboard">Дашборд</a>
       <a class="btn ghost" href="/contracts">Контракты</a>
+      <a class="btn ghost" href="/reviews">Отзывы</a>
     </div>
     {% endif %}
 
@@ -120,6 +122,14 @@
                 {% endif %}
 
                 <a class="btn ghost" href="/orders/{{ order.id }}/history">История</a>
+
+                {% if user_role == "customer" and order.status == "done" %}
+                  {% if order.id in reviewed_order_ids %}
+                  <a class="btn ghost" href="/reviews">Отзыв оставлен</a>
+                  {% else %}
+                  <a class="btn ghost" href="/orders/{{ order.id }}/review">Оставить отзыв</a>
+                  {% endif %}
+                {% endif %}
 
                 {% if user_role == "admin" %}
                 <form method="post" action="/orders/{{ order.id }}/status" class="inline-form admin-form">
